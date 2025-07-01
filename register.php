@@ -1,6 +1,17 @@
 <?php
 // register.php
 
+// โหลดไฟล์ .env สำหรับเก็บค่า Configuration
+/*
+require_once __DIR__ . '/vendor/autoload.php';
+try {
+    $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/config');
+    $dotenv->load();
+} catch (\Dotenv\Exception\InvalidPathException $e) {
+    // ไม่ต้องทำอะไรถ้าไม่พบไฟล์ .env, โค้ดจะใช้ค่า null แทน
+}
+*/
+
 // ฟังก์ชันสำหรับโหลดข้อมูลพนักงาน (พร้อมระบบแคชหลายระดับ)
 function get_employee_data() {
     $cache_key = 'employee_data_map';
@@ -182,6 +193,8 @@ try {
         // --- END: ปรับปรุงการแสดงผลเมื่อสำเร็จ ---
 
         // ส่งข้อมูลไป Google Sheets
+        // $url = $_ENV['GOOGLE_SCRIPT_URL'] ?? null;
+
         $url = "https://script.google.com/macros/s/AKfycbyQcNpLCgjbeVAfGZwmK9suB5OuWPyGl2W5UJ98tIqumUk2-Yu9w9a-UzhjTjhtvcM/exec";
         $data_to_send = ['รหัสพนักงาน' => $row['emp_id'], 'ชื่อ' => $row['emp_name'], 'ตำแหน่ง' => $row['position'], 'ส่วนงานย่อ' => $row['sec_short'], 'ชื่อศูนย์ต้นทุน' => $row['cc_name']];
         $options = ['http' => ['header'  => "Content-type: application/json\r\n", 'method'  => 'POST', 'content' => json_encode($data_to_send), 'timeout' => 5]];

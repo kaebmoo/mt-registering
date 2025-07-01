@@ -7,3 +7,4 @@ employee_202507011212.csv
 admin/users.json
 config/.env
 config/.env
+/vendor

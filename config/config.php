@@ -1,27 +1,62 @@
 <?php
-// config/config.php - Configuration Helper Class
+// config/config.php - Configuration Helper Class with vlucas/phpdotenv
 
 class Config {
     private static $config = [];
     private static $loaded = false;
     
     /**
-     * โหลด Environment Variables จากไฟล์ .env
+     * โหลด Environment Variables จากไฟล์ .env ด้วย vlucas/phpdotenv
      */
     public static function loadEnv($path = null) {
         if (self::$loaded) {
             return true;
         }
         
-        $envPath = $path ?: dirname(__DIR__) . '/.env';
+        // 1.1: โหลดไฟล์ .env สำหรับเก็บค่า Configuration
+        if (file_exists(dirname(__DIR__) . '/vendor/autoload.php')) {
+            require_once dirname(__DIR__) . '/vendor/autoload.php';
+            
+            try {
+                $envPath = $path ?: __DIR__;  // Default ใช้ config directory
+                $dotenv = Dotenv\Dotenv::createImmutable($envPath);
+                $dotenv->load();
+                
+                // เก็บค่าลง config array
+                foreach ($_ENV as $key => $value) {
+                    self::$config[$key] = $value;
+                }
+                
+                self::$loaded = true;
+                return true;
+                
+            } catch (\Dotenv\Exception\InvalidPathException $e) {
+                // ไม่ต้องทำอะไรถ้าไม่พบไฟล์ .env, โค้ดจะใช้ค่า default แทน
+                error_log("Warning: .env file not found - " . $e->getMessage());
+            } catch (Exception $e) {
+                error_log("Error loading .env file: " . $e->getMessage());
+            }
+        } else {
+            // Fallback: ใช้วิธีอ่าน .env แบบง่ายๆ ถ้าไม่มี Composer
+            self::loadEnvManual($path);
+        }
         
-        if (!file_exists($envPath)) {
-            // ถ้าไม่มีไฟล์ .env ให้ใช้ค่าจาก server environment
-            self::$loaded = true;
+        self::$loaded = true;
+        return false;
+    }
+    
+    /**
+     * วิธีอ่าน .env แบบ manual (fallback)
+     */
+    private static function loadEnvManual($path = null) {
+        $envPath = $path ?: dirname(__DIR__);
+        $envFile = $envPath . '/.env';
+        
+        if (!file_exists($envFile)) {
             return false;
         }
         
-        $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
         
         foreach ($lines as $line) {
             $line = trim($line);
@@ -49,7 +84,6 @@ class Config {
             }
         }
         
-        self::$loaded = true;
         return true;
     }
     
@@ -149,6 +183,24 @@ class Config {
             'user' => self::get('DB_USER', ''),
             'password' => self::get('DB_PASSWORD', '')
         ];
+    }
+    
+    /**
+     * แสดงข้อมูล debug สำหรับการตั้งค่า
+     */
+    public static function debugInfo() {
+        if (!self::isDebug()) {
+            return '';
+        }
+        
+        $info = [];
+        $info[] = "🔧 Config Debug Info:";
+        $info[] = "Composer: " . (file_exists(dirname(__DIR__) . '/vendor/autoload.php') ? "✅" : "❌");
+        $info[] = "DotEnv: " . (class_exists('Dotenv\Dotenv') ? "✅" : "❌");
+        $info[] = ".env file: " . (file_exists(__DIR__ . '/.env') ? "✅" : "❌");
+        $info[] = "Loaded vars: " . count(self::$config);
+        
+        return implode(" | ", $info);
     }
 }
 
