@@ -9,7 +9,7 @@ if ($path !== '/' && file_exists($file) && !is_dir($file)) {
 }
 
 // ถ้าเป็นหน้าแรก → แสดง index.html
-if ($path === '/' || $path === '/index.html') {
+if ($path === '/' || $path === '/index.php') {
     include __DIR__ . '/index.html';
     exit;
 }
@@ -21,7 +21,7 @@ if ($path === '/admin') {
 
 // กรณีเข้า "/admin" → redirect ไป login.php
 if ($path === '/admin' || $path === '/admin/') {
-    include __DIR__ . '/admin/index.html';
+    include __DIR__ . '/admin/index.php';
     exit;
 }
 

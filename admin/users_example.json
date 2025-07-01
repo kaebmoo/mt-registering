@@ -1,0 +1,5 @@
+{
+    "demo.user@example.com": "$2y$12$abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQR",
+    "testadmin": "$2y$12$1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t1u2v3w4x5y6z7a",
+    "sampleuser": "$2y$12$xyz987654321abcdef0123456789ghijklmnopqrstuvwxyzABCDEF"
+}
