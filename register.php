@@ -43,25 +43,13 @@ function get_employee_data() {
     
     // ใช้ SplFileObject เพื่อประสิทธิภาพที่ดีกว่า
     $file = new SplFileObject($csvFile);
-    $file->setFlags(SplFileObject::READ_CSV);
+    $file->setFlags(SplFileObject::READ_CSV | SplFileObject::SKIP_EMPTY);
     
-    $headers = null;
-    $line_count = 0;
+    $headers = $file->fgetcsv(); // อ่านบรรทัดแรกเป็น Header
     
     foreach ($file as $data) {
-        if ($line_count === 0) {
-            $headers = $data;
-            $line_count++;
-            continue;
-        }
-        
-        // ข้าม empty lines
-        if (empty($data) || !isset($data[0]) || trim($data[0]) === '') {
-            continue;
-        }
-        
         // ตรวจสอบข้อมูลเบื้องต้น
-        if (count($headers) == count($data)) {
+        if (is_array($data) && count($headers) == count($data)) {
             $row = array_combine($headers, $data);
             // ใช้ emp_id เป็น key และทำ normalization
             $emp_id = trim($row['emp_id']);
@@ -73,7 +61,6 @@ function get_employee_data() {
                 'cc_name' => trim($row['cc_name'] ?? '')
             ];
         }
-        $line_count++;
     }
 
     // 4. สร้าง cache directory ถ้ายังไม่มี
@@ -95,40 +82,23 @@ function get_employee_data() {
     return $employee_map;
 }
 
-// ฟังก์ชันสำหรับค้นหาพนักงานแบบ Fuzzy Search
+// ฟังก์ชันสำหรับค้นหาพนักงาน
 function search_employee($emp_id, $employee_data) {
     $emp_id = trim($emp_id);
     
-    // 1. ค้นหาแบบตรงกัน exact match
+    if (strlen($emp_id) < 6) {
+        return null;
+    }
+    
+    // 1. ค้นหาแบบตรงกัน
     if (isset($employee_data[$emp_id])) {
         return $employee_data[$emp_id];
     }
     
-    // 2. ลบ leading zeros แล้วลองอีกครั้ง
+    // 2. ลบ 0 นำหน้า
     $emp_id_no_leading = ltrim($emp_id, '0');
-    if ($emp_id_no_leading && isset($employee_data[$emp_id_no_leading])) {
+    if (strlen($emp_id_no_leading) >= 6 && isset($employee_data[$emp_id_no_leading])) {
         return $employee_data[$emp_id_no_leading];
-    }
-    
-    // 3. ใส่ leading zeros แล้วลองหา (กรณี user ไม่ใส่ 0 ด้านหน้า)
-    $padded_variations = [
-        str_pad($emp_id, 4, '0', STR_PAD_LEFT),
-        str_pad($emp_id, 5, '0', STR_PAD_LEFT),
-        str_pad($emp_id, 6, '0', STR_PAD_LEFT),
-        str_pad($emp_id, 7, '0', STR_PAD_LEFT)
-    ];
-    
-    foreach ($padded_variations as $variation) {
-        if (isset($employee_data[$variation])) {
-            return $employee_data[$variation];
-        }
-    }
-    
-    // 4. ถ้ายังไม่เจอ ลองค้นหาใน value (ช้ากว่า แต่ครอบคลุมมากกว่า)
-    foreach ($employee_data as $key => $row) {
-        if (strpos($key, $emp_id) !== false || strpos($emp_id, $key) !== false) {
-            return $row;
-        }
     }
     
     return null;
@@ -144,13 +114,12 @@ function search_employee($emp_id, $employee_data) {
     <style>
         body { padding: 40px; background-color: #f9f9f9; }
         .performance-info { 
-            background: #f0f0f0; 
-            padding: 10px; 
-            margin: 10px 0; 
-            border-radius: 4px; 
-            font-size: 0.9em; 
-            color: #666;
+            background: #f0f0f0; padding: 10px; margin-top: 20px; 
+            border-radius: 4px; font-size: 0.9em; color: #666;
+            word-wrap: break-word;
         }
+        .ui.list .item .header { font-weight: bold; }
+        .ui.list .item .description { color: #555; }
     </style>
 </head>
 <body>
@@ -165,37 +134,12 @@ $emp_id = $_POST['emp_id'] ?? '';
 $row = null;
 
 try {
-    // เรียกใช้ฟังก์ชันเพื่อเอาข้อมูลพนักงาน
-    $load_start = microtime(true);
-    $employee_data = get_employee_data();
-    $load_time = microtime(true) - $load_start;
-
-    // ค้นหาพนักงานด้วย Fuzzy Search
-    $search_start = microtime(true);
-    $row = search_employee($emp_id, $employee_data);
-    $search_time = microtime(true) - $search_start;
-    
-    $total_time = microtime(true) - $start_time;
-    
-    // แสดงข้อมูล Performance (เฉพาะในโหมด debug)
-    if (isset($_GET['debug']) || isset($_POST['debug'])) {
-        echo '<div class="performance-info">';
-        echo "📊 Performance: ";
-        echo "โหลดข้อมูล: " . number_format($load_time * 1000, 2) . "ms | ";
-        echo "ค้นหา: " . number_format($search_time * 1000, 2) . "ms | ";
-        echo "รวม: " . number_format($total_time * 1000, 2) . "ms | ";
-        echo "จำนวนพนักงาน: " . number_format(count($employee_data)) . " คน";
-        
-        // ตรวจสอบว่าใช้ cache อะไร
-        if (function_exists('apcu_fetch') && apcu_fetch('employee_data_map') !== false) {
-            echo " | ใช้ APCu Cache ✅";
-        } elseif (file_exists(__DIR__ . '/cache/employee_cache.php')) {
-            echo " | ใช้ File Cache 📁";
-        } else {
-            echo " | อ่านจาก CSV 📄";
-        }
-        echo '</div>';
+    if (empty($emp_id)) {
+        throw new Exception("กรุณากรอกรหัสพนักงาน");
     }
+    
+    $employee_data = get_employee_data();
+    $row = search_employee($emp_id, $employee_data);
     
     if ($row) {
         // --- START: ปรับปรุงการแสดงผลเมื่อสำเร็จ ---
@@ -209,97 +153,124 @@ try {
         </div>
 
         <div class="ui segment">
+            <h3 class="ui header">ข้อมูลผู้ลงทะเบียน</h3>
             <div class="ui relaxed divided list">
                 <div class="item">
-                    <div class="header">รหัสพนักงาน</div>
-                    <?= htmlspecialchars($row['emp_id']) ?>
+                    <i class="large id card outline middle aligned icon"></i>
+                    <div class="content"><div class="header">รหัสพนักงาน</div><div class="description"><?= htmlspecialchars($row['emp_id']) ?></div></div>
                 </div>
                 <div class="item">
-                    <div class="header">ชื่อ</div>
-                    <?= htmlspecialchars($row['emp_name']) ?>
+                    <i class="large user outline middle aligned icon"></i>
+                    <div class="content"><div class="header">ชื่อ</div><div class="description"><?= htmlspecialchars($row['emp_name']) ?></div></div>
                 </div>
                 <div class="item">
-                    <div class="header">ตำแหน่ง</div>
-                    <?= htmlspecialchars($row['position'] ?? 'ไม่ระบุ') ?>
+                    <i class="large briefcase middle aligned icon"></i>
+                    <div class="content"><div class="header">ตำแหน่ง</div><div class="description"><?= htmlspecialchars($row['position'] ?? 'ไม่ระบุ') ?></div></div>
                 </div>
                 <div class="item">
-                    <div class="header">ส่วนงานย่อ</div>
-                    <?= htmlspecialchars($row['sec_short'] ?? 'ไม่ระบุ') ?>
+                    <i class="large sitemap middle aligned icon"></i>
+                    <div class="content"><div class="header">ส่วนงานย่อ</div><div class="description"><?= htmlspecialchars($row['sec_short'] ?? 'ไม่ระบุ') ?></div></div>
                 </div>
                 <div class="item">
-                    <div class="header">ชื่อหน่วยงาน</div>
-                    <?= htmlspecialchars($row['cc_name'] ?? 'ไม่ระบุ') ?>
+                    <i class="large building outline middle aligned icon"></i>
+                    <div class="content"><div class="header">ชื่อหน่วยงาน</div><div class="description"><?= htmlspecialchars($row['cc_name'] ?? 'ไม่ระบุ') ?></div></div>
                 </div>
             </div>
         </div>
-        <a href="index.php" class="ui primary button">กลับหน้าแรก</a>
+        <a href="index.php" class="ui huge primary icon labeled button"><i class="home icon"></i> กลับหน้าแรก</a>
 <?php
         // --- END: ปรับปรุงการแสดงผลเมื่อสำเร็จ ---
 
-        // ส่งข้อมูลไป Google Sheets (แบบ async เพื่อไม่ให้ user รอนาน)
+        // ส่งข้อมูลไป Google Sheets
         $url = "https://script.google.com/macros/s/AKfycbyQcNpLCgjbeVAfGZwmK9suB5OuWPyGl2W5UJ98tIqumUk2-Yu9w9a-UzhjTjhtvcM/exec";
-        $data_to_send = [
-            'รหัสพนักงาน' => $row['emp_id'], 
-            'ชื่อ' => $row['emp_name'], 
-            'ตำแหน่ง' => $row['position'],
-            'ส่วนงานย่อ' => $row['sec_short'], 
-            'ชื่อศูนย์ต้นทุน' => $row['cc_name']
-        ];
-        
-        $options = [
-            'http' => [
-                'header'  => "Content-type: application/json\r\n",
-                'method'  => 'POST',
-                'content' => json_encode($data_to_send),
-                'timeout' => 5 // timeout 5 วินาที เพื่อไม่ให้ user รอนาน
-            ]
-        ];
+        $data_to_send = ['รหัสพนักงาน' => $row['emp_id'], 'ชื่อ' => $row['emp_name'], 'ตำแหน่ง' => $row['position'], 'ส่วนงานย่อ' => $row['sec_short'], 'ชื่อศูนย์ต้นทุน' => $row['cc_name']];
+        $options = ['http' => ['header'  => "Content-type: application/json\r\n", 'method'  => 'POST', 'content' => json_encode($data_to_send), 'timeout' => 5]];
         $context = stream_context_create($options);
-        @file_get_contents($url, false, $context); // ใช้ @ เพื่อไม่แสดง error ถ้า Google Sheets down
+        $result = @file_get_contents($url, false, $context);
     
     } else {
-        // --- START: ปรับปรุงการแสดงผลเมื่อไม่สำเร็จ ---
+        // --- START: ปรับปรุงการแสดงผลเมื่อไม่สำเร็จ (รวมทุกกรณี) ---
 ?>
         <div class="ui segment">
+            <?php
+            if (strlen($emp_id) < 6) {
+                $error_header = 'รหัสพนักงานไม่ถูกต้อง';
+                $error_message = 'รหัสพนักงานต้องมีอย่างน้อย 6 หลัก คุณใส่ "' . htmlspecialchars($emp_id) . '" (' . strlen($emp_id) . ' หลัก)';
+            } else {
+                $error_header = 'ไม่พบข้อมูลพนักงาน';
+                $error_message = 'ไม่พบรหัสพนักงาน "' . htmlspecialchars($emp_id) . '" ในระบบ';
+            }
+            ?>
             <div class="ui icon negative message">
                 <i class="times circle outline icon"></i>
                 <div class="content">
-                    <div class="header">รหัสไม่ถูกต้องหรือไม่พบข้อมูล</div>
-                    <p>กรุณาตรวจสอบรหัสพนักงาน หรือกรอกข้อมูลด้วยตนเองด้านล่าง</p>
-                    <p><small>รหัสที่ค้นหา: "<?= htmlspecialchars($emp_id) ?>"</small></p>
+                    <div class="header"><?= $error_header ?></div>
+                    <p><?= $error_message ?></p>
                 </div>
             </div>
 
-            <h3 class="ui dividing header">กรอกข้อมูลด้วยตนเอง</h3>
+            <h3 class="ui dividing header">
+                <i class="keyboard outline icon"></i>
+                <div class="content">
+                    กรอกข้อมูลด้วยตนเอง
+                    <div class="sub header">ในกรณีที่ค้นหาข้อมูลไม่พบ หรือต้องการแก้ไข</div>
+                </div>
+            </h3>
             
             <form class="ui form" name="addform" method="POST" action="register_manual.php">
                 <div class="field">
-                    <label>รหัสพนักงาน <span style="color: gray;">(ไม่ต้องใส่ 0 ด้านหน้า)</span></label>
-                    <input type="text" name="new_emp_id" value="<?= htmlspecialchars($emp_id) ?>" required>
+                    <label>รหัสพนักงาน <span style="color: gray;">(กรุณาตรวจสอบให้ถูกต้อง)</span></label>
+                    <input type="text" name="new_emp_id" value="<?= htmlspecialchars($emp_id) ?>" required minlength="6">
                 </div>
                 <div class="field">
                     <label>ชื่อ-นามสกุล</label>
                     <input type="text" name="new_emp_name" required>
                 </div>
                 <div class="field">
-                    <label>ตำแหน่ง <span style="color: gray;">(optional)</span></label>
+                    <label>ตำแหน่ง <span style="color: gray;">(ถ้ามี)</span></label>
                     <input type="text" name="new_position">
                 </div>
                 <div class="field">
-                    <label>ส่วนงานย่อ <span style="color: gray;">(optional)</span></label>
+                    <label>ส่วนงานย่อ <span style="color: gray;">(ถ้ามี)</span></label>
                     <input type="text" name="new_sec_short">
                 </div>
                 <div class="field">
-                    <label>ชื่อหน่วยงาน <span style="color: gray;">(optional)</span></label>
+                    <label>ชื่อหน่วยงาน <span style="color: gray;">(ถ้ามี)</span></label>
                     <input type="text" name="new_cc_name">
                 </div>
-                <button class="ui primary button" type="submit">ลงทะเบียน</button>
-                <div class="ui button" onclick="window.history.back()">ย้อนกลับ</div>
+                <div style="margin-top: 20px;">
+                    <button class="ui primary icon labeled button" type="submit">
+                        <i class="paper plane outline icon"></i>
+                        ลงทะเบียน
+                    </button>
+                    <div class="ui button" onclick="window.history.back()">
+                        <i class="arrow left icon"></i>
+                        ย้อนกลับ
+                    </div>
+                </div>
             </form>
         </div>
 <?php
         // --- END: ปรับปรุงการแสดงผลเมื่อไม่สำเร็จ ---
     }
+
+    // แสดงข้อมูล Performance (เฉพาะในโหมด debug)
+    if (isset($_GET['debug'])) {
+        echo '<div class="performance-info">';
+        echo "<b>📊 Performance:</b> ";
+        echo "Total Time: " . number_format((microtime(true) - $start_time) * 1000, 2) . "ms | ";
+        echo "Employees: " . number_format(count($employee_data));
+        
+        if (function_exists('apcu_fetch') && apcu_fetch('employee_data_map') !== false) {
+            echo " | Cache: APCu ✅";
+        } elseif (file_exists(__DIR__ . '/cache/employee_cache.php')) {
+            echo " | Cache: File 📁";
+        } else {
+            echo " | Cache: None (Read from CSV) 📄";
+        }
+        echo '</div>';
+    }
+
 } catch (Exception $e) {
     echo '<div class="ui error icon message"><i class="exclamation triangle icon"></i><div class="content"><div class="header">เกิดข้อผิดพลาด</div><p>' . htmlspecialchars($e->getMessage()) . '</p></div></div>';
 }
