@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}ผลการลงทะเบียน{% endblock %}
+
+{% block content %}
+<div class="ui container">
+    {% if already_registered %}
+        <div class="ui icon info message">
+            <i class="info circle icon"></i>
+            <div class="content">
+                <div class="header">คุณได้ลงทะเบียนแล้ว</div>
+                <p>ข้อมูลของคุณได้ถูกบันทึกในระบบก่อนหน้านี้แล้ว</p>
+            </div>
+        </div>
+    {% else %}
+        <div class="ui icon positive message">
+            <i class="check circle outline icon"></i>
+            <div class="content">
+                <div class="header">
+                    {% if is_manual %}
+                        ลงทะเบียนด้วยตนเองสำเร็จ
+                    {% else %}
+                        ลงทะเบียนสำเร็จ
+                    {% endif %}
+                </div>
+                <p>ข้อมูลของคุณได้ถูกบันทึกเรียบร้อยแล้ว</p>
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="ui segment">
+        <h3 class="ui header">
+            <i class="user circle icon"></i>
+            ข้อมูลผู้ลงทะเบียน
+        </h3>
+        
+        <div class="ui relaxed divided list">
+            <div class="item">
+                <i class="large id card outline middle aligned icon"></i>
+                <div class="content">
+                    <div class="header">รหัสพนักงาน</div>
+                    <div class="description">{{ registration_data.emp_id }}</div>
+                </div>
+            </div>
+            
+            <div class="item">
+                <i class="large user outline middle aligned icon"></i>
+                <div class="content">
+                    <div class="header">ชื่อ-นามสกุล</div>
+                    <div class="description">{{ registration_data.emp_name }}</div>
+                </div>
+            </div>
+            
+            {% if registration_data.position %}
+            <div class="item">
+                <i class="large briefcase middle aligned icon"></i>
+                <div class="content">
+                    <div class="header">ตำแหน่ง</div>
+                    <div class="description">{{ registration_data.position }}</div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if registration_data.sec_short %}
+            <div class="item">
+                <i class="large sitemap middle aligned icon"></i>
+                <div class="content">
+                    <div class="header">ส่วนงานย่อ</div>
+                    <div class="description">{{ registration_data.sec_short }}</div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if registration_data.cc_name %}
+            <div class="item">
+                <i class="large building outline middle aligned icon"></i>
+                <div class="content">
+                    <div class="header">ชื่อหน่วยงาน</div>
+                    <div class="description">{{ registration_data.cc_name }}</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if meeting %}
+    <div class="ui secondary segment">
+        <h4 class="ui header">
+            <i class="calendar alternate outline icon"></i>
+            ข้อมูลการประชุม
+        </h4>
+        <p><strong>หัวข้อ:</strong> {{ meeting.topic }}</p>
+        <p>
+            <strong>วันเวลา:</strong> 
+            {{ meeting.meeting_date.strftime('%d/%m/%Y') }}
+            {{ meeting.start_time.strftime('%H:%M') }} - {{ meeting.end_time.strftime('%H:%M') }}
+        </p>
+        <p>
+            <strong>สถานที่:</strong> 
+            ห้องประชุม {{ meeting.room }} ชั้น {{ meeting.floor }} {{ meeting.building }}
+        </p>
+    </div>
+    {% endif %}
+
+    <div class="ui divider"></div>
+    
+    <a href="{{ url_for('index') }}" class="ui huge primary icon labeled button">
+        <i class="home icon"></i>
+        กลับหน้าแรก
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto redirect after 30 seconds
+    setTimeout(function() {
+        window.location.href = "{{ url_for('index') }}";
+    }, 30000);
+</script>
+{% endblock %}

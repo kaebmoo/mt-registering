@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: meeting_registration_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: meetingpass2024
+      POSTGRES_DB: meeting_registration
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - meeting_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: meeting_registration_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - meeting_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    container_name: meeting_registration_app
+    environment:
+      FLASK_ENV: production
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: meetingpass2024
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: meeting_registration
+      REDIS_URL: redis://redis:6379
+      SECRET_KEY: your-secret-key-change-this-in-production
+      GOOGLE_SCRIPT_URL: https://script.google.com/macros/s/AKfycbyQcNpLCgjbeVAfGZwmK9suB5OuWPyGl2W5UJ98tIqumUk2-Yu9w9a-UzhjTjhtvcM/exec
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - meeting_network
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+
+networks:
+  meeting_network:
+    driver: bridge
+
+volumes:
+  postgres_data:

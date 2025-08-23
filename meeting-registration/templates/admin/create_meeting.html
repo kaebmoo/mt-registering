@@ -1,0 +1,58 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}สร้างการประชุมใหม่{% endblock %}
+{% block admin_content %}
+
+    <h1 class="ui header">
+        <i class="calendar plus icon"></i>
+        <div class="content">
+            สร้างการประชุมใหม่
+            <div class="sub header">กรอกข้อมูลการประชุม</div>
+        </div>
+    </h1>
+
+    <form class="ui form" method="POST">
+        <div class="field">
+            <label>หัวข้อการประชุม</label>
+            <input type="text" name="topic" required>
+        </div>
+        
+        <div class="three fields">
+            <div class="field">
+                <label>วันที่</label>
+                <input type="date" name="meeting_date" required>
+            </div>
+            <div class="field">
+                <label>เวลาเริ่ม</label>
+                <input type="time" name="start_time" required>
+            </div>
+            <div class="field">
+                <label>เวลาสิ้นสุด</label>
+                <input type="time" name="end_time" required>
+            </div>
+        </div>
+        
+        <div class="three fields">
+            <div class="field">
+                <label>ห้องประชุม</label>
+                <input type="text" name="room" required>
+            </div>
+            <div class="field">
+                <label>ชั้น</label>
+                <input type="text" name="floor" required>
+            </div>
+            <div class="field">
+                <label>อาคาร</label>
+                <input type="text" name="building" required>
+            </div>
+        </div>
+        
+        <button class="ui primary button" type="submit">
+            <i class="save icon"></i> บันทึก
+        </button>
+        <a href="{{ url_for('admin.meetings') }}" class="ui button">
+            <i class="cancel icon"></i> ยกเลิก
+        </a>
+    </form>
+
+{% endblock %}

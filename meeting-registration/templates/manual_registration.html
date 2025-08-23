@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}ลงทะเบียนด้วยตนเอง{% endblock %}
+
+{% block content %}
+<div class="ui container">
+    <div class="ui segment">
+        <h2 class="ui header">
+            <i class="keyboard outline icon"></i>
+            <div class="content">
+                กรอกข้อมูลด้วยตนเอง
+                <div class="sub header">ไม่พบรหัสพนักงาน "{{ emp_id }}" ในระบบ</div>
+            </div>
+        </h2>
+        
+        <div class="ui warning message">
+            <div class="header">กรุณากรอกข้อมูลของคุณ</div>
+            <p>เนื่องจากไม่พบข้อมูลของคุณในระบบ กรุณากรอกข้อมูลด้านล่างเพื่อลงทะเบียน</p>
+        </div>
+        
+        <form class="ui form" method="POST" action="{{ url_for('register_manual') }}">
+            <div class="required field">
+                <label>รหัสพนักงาน</label>
+                <div class="ui left icon input">
+                    <i class="id card outline icon"></i>
+                    <input type="text" 
+                           name="new_emp_id" 
+                           value="{{ emp_id }}" 
+                           required 
+                           minlength="6"
+                           pattern="[0-9]{6,}">
+                </div>
+            </div>
+            
+            <div class="required field">
+                <label>ชื่อ-นามสกุล</label>
+                <div class="ui left icon input">
+                    <i class="user icon"></i>
+                    <input type="text" 
+                           name="new_emp_name" 
+                           placeholder="กรอกชื่อ-นามสกุล" 
+                           required>
+                </div>
+            </div>
+            
+            <div class="field">
+                <label>ตำแหน่ง <span style="color: gray;">(ถ้ามี)</span></label>
+                <div class="ui left icon input">
+                    <i class="briefcase icon"></i>
+                    <input type="text" 
+                           name="new_position" 
+                           placeholder="กรอกตำแหน่ง">
+                </div>
+            </div>
+            
+            <div class="field">
+                <label>ส่วนงานย่อ <span style="color: gray;">(ถ้ามี)</span></label>
+                <div class="ui left icon input">
+                    <i class="sitemap icon"></i>
+                    <input type="text" 
+                           name="new_sec_short" 
+                           placeholder="กรอกส่วนงานย่อ">
+                </div>
+            </div>
+            
+            <div class="field">
+                <label>ชื่อหน่วยงาน/ศูนย์ต้นทุน <span style="color: gray;">(ถ้ามี)</span></label>
+                <div class="ui left icon input">
+                    <i class="building outline icon"></i>
+                    <input type="text" 
+                           name="new_cc_name" 
+                           placeholder="กรอกชื่อหน่วยงาน">
+                </div>
+            </div>
+            
+            <div class="ui divider"></div>
+            
+            <div class="field">
+                <button class="ui primary icon labeled button" type="submit">
+                    <i class="paper plane outline icon"></i>
+                    ลงทะเบียน
+                </button>
+                <a href="{{ url_for('index') }}" class="ui button">
+                    <i class="arrow left icon"></i>
+                    ย้อนกลับ
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Form validation
+        $('.ui.form').form({
+            fields: {
+                new_emp_id: {
+                    identifier: 'new_emp_id',
+                    rules: [
+                        {
+                            type: 'empty',
+                            prompt: 'กรุณากรอกรหัสพนักงาน'
+                        },
+                        {
+                            type: 'minLength[6]',
+                            prompt: 'รหัสพนักงานต้องมีอย่างน้อย 6 หลัก'
+                        }
+                    ]
+                },
+                new_emp_name: {
+                    identifier: 'new_emp_name',
+                    rules: [
+                        {
+                            type: 'empty',
+                            prompt: 'กรุณากรอกชื่อ-นามสกุล'
+                        }
+                    ]
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

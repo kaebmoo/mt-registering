@@ -1,0 +1,107 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}รายชื่อผู้ลงทะเบียน - {{ meeting.topic }}{% endblock %}
+
+{% block admin_content %}
+<div class="ui container">
+
+    <h1 class="ui header">
+        <i class="users icon"></i>
+        <div class="content">
+            รายชื่อผู้ลงทะเบียน
+            <div class="sub header">{{ meeting.topic }}</div>
+        </div>
+    </h1>
+
+    <div class="ui segment">
+        <div class="ui two statistics">
+            <div class="statistic">
+                <div class="value">{{ registrations.total }}</div>
+                <div class="label">ผู้ลงทะเบียนทั้งหมด</div>
+            </div>
+            <div class="statistic">
+                <div class="value">
+                    {{ registrations.items | selectattr('is_manual_entry', 'equalto', True) | list | length }}
+                </div>
+                <div class="label">ลงทะเบียนด้วยตนเอง</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="ui segment">
+        <a href="{{ url_for('admin.export_registrations', meeting_id=meeting.id) }}" class="ui green button">
+            <i class="download icon"></i> Export CSV
+        </a>
+    </div>
+
+    <table class="ui celled striped table">
+        <thead>
+            <tr>
+                <th>ลำดับ</th>
+                <th>รหัสพนักงาน</th>
+                <th>ชื่อ-นามสกุล</th>
+                <th>ตำแหน่ง</th>
+                <th>ส่วนงานย่อ</th>
+                <th>ศูนย์ต้นทุน</th>
+                <th>เวลาลงทะเบียน</th>
+                <th>ประเภท</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for reg in registrations.items %}
+            <tr>
+                <td>{{ (registrations.page - 1) * registrations.per_page + loop.index }}</td>
+                <td>{{ reg.emp_id or '-' }}</td>
+                <td>{{ reg.emp_name }}</td>
+                <td>{{ reg.position or '-' }}</td>
+                <td>{{ reg.sec_short or '-' }}</td>
+                <td>{{ reg.cc_name or '-' }}</td>
+                <td>{{ reg.registration_time.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+                <td>
+                    {% if reg.is_manual_entry %}
+                        <div class="ui yellow label">กรอกเอง</div>
+                    {% else %}
+                        <div class="ui green label">อัตโนมัติ</div>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" class="center aligned">ยังไม่มีผู้ลงทะเบียน</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    {% if registrations.pages > 1 %}
+    <div class="ui pagination menu">
+        {% if registrations.has_prev %}
+        <a class="item" href="{{ url_for('admin.view_registrations', meeting_id=meeting.id, page=registrations.prev_num) }}">
+            <i class="left arrow icon"></i>
+        </a>
+        {% endif %}
+        
+        {% for page_num in registrations.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=3) %}
+            {% if page_num %}
+                {% if page_num != registrations.page %}
+                    <a class="item" href="{{ url_for('admin.view_registrations', meeting_id=meeting.id, page=page_num) }}">
+                        {{ page_num }}
+                    </a>
+                {% else %}
+                    <div class="active item">{{ page_num }}</div>
+                {% endif %}
+            {% else %}
+                <div class="disabled item">...</div>
+            {% endif %}
+        {% endfor %}
+        
+        {% if registrations.has_next %}
+        <a class="item" href="{{ url_for('admin.view_registrations', meeting_id=meeting.id, page=registrations.next_num) }}">
+            <i class="right arrow icon"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

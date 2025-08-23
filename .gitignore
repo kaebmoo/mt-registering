@@ -8,3 +8,9 @@ admin/users.json
 config/.env
 config/.env
 /vendor
+meeting-registration/.env
+*.pyc
+php/config/.env
+php/admin/users.json
+php/cache/employee_cache.php
+/php/vendor

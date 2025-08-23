@@ -1,0 +1,71 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}จัดการการประชุม{% endblock %}
+
+{% block admin_content %}
+
+
+
+    <h1 class="ui header">
+        <i class="calendar icon"></i>
+        <div class="content">
+            จัดการการประชุม
+            <div class="sub header">สร้างและจัดการการประชุมทั้งหมด</div>
+        </div>
+    </h1>
+
+    <div class="ui segment">
+        <a href="{{ url_for('admin.create_meeting') }}" class="ui primary button">
+            <i class="plus icon"></i> สร้างการประชุมใหม่
+        </a>
+    </div>
+
+    <table class="ui celled table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>หัวข้อการประชุม</th>
+                <th>วันที่</th>
+                <th>เวลา</th>
+                <th>สถานที่</th>
+                <th>สถานะ</th>
+                <th>การดำเนินการ</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for meeting in meetings %}
+            <tr>
+                <td>{{ meeting.id }}</td>
+                <td>{{ meeting.topic }}</td>
+                <td>{{ meeting.meeting_date.strftime('%d/%m/%Y') }}</td>
+                <td>{{ meeting.start_time.strftime('%H:%M') }} - {{ meeting.end_time.strftime('%H:%M') }}</td>
+                <td>ห้อง {{ meeting.room }} ชั้น {{ meeting.floor }} {{ meeting.building }}</td>
+                <td>
+                    {% if meeting.is_active %}
+                        <div class="ui green label">เปิดลงทะเบียน</div>
+                    {% else %}
+                        <div class="ui label">ปิด</div>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{{ url_for('admin.view_registrations', meeting_id=meeting.id) }}" class="ui small button">
+                        <i class="list icon"></i> ดูผู้ลงทะเบียน
+                    </a>
+                    <a href="{{ url_for('admin.toggle_meeting', meeting_id=meeting.id) }}" class="ui small button">
+                        {% if meeting.is_active %}
+                            <i class="lock icon"></i> ปิด
+                        {% else %}
+                            <i class="unlock icon"></i> เปิด
+                        {% endif %}
+                    </a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" class="center aligned">ยังไม่มีการประชุม</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+{% endblock %}

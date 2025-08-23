@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}500 - เกิดข้อผิดพลาด{% endblock %}
+
+{% block content %}
+<div class="ui container">
+    <div class="ui negative message">
+        <div class="header">
+            <i class="exclamation triangle icon"></i>
+            500 - เกิดข้อผิดพลาดภายในระบบ
+        </div>
+        <p>ขออภัย เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่อีกครั้ง</p>
+    </div>
+    
+    <a href="{{ url_for('index') }}" class="ui primary button">
+        <i class="home icon"></i>
+        กลับหน้าแรก
+    </a>
+</div>
+{% endblock %}

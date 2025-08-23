@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="ui container">
+    <!-- Admin Menu Bar - ใช้ซ้ำทุกหน้า -->
+    <div class="ui secondary menu">
+        <a class="{% if request.endpoint == 'admin.dashboard' %}active {% endif %}item" href="{{ url_for('admin.dashboard') }}">
+            <i class="dashboard icon"></i> Dashboard
+        </a>
+        <a class="{% if request.endpoint == 'admin.meetings' or request.endpoint == 'admin.create_meeting' %}active {% endif %}item" href="{{ url_for('admin.meetings') }}">
+            <i class="calendar icon"></i> การประชุม
+        </a>
+        <a class="{% if request.endpoint == 'admin.employees' %}active {% endif %}item" href="{{ url_for('admin.employees') }}">
+            <i class="users icon"></i> พนักงาน
+        </a>
+        {% if active_meeting %}
+        <a class="{% if request.endpoint == 'admin.statistics' %}active {% endif %}item" href="{{ url_for('admin.statistics') }}">
+            <i class="chart bar icon"></i> สถิติ
+        </a>
+        {% endif %}
+        <div class="right menu">
+            <a class="ui item" href="{{ url_for('admin.logout') }}">
+                <i class="sign out icon"></i> ออกจากระบบ
+            </a>
+        </div>
+    </div>
+
+    <!-- Content Area -->
+    {% block admin_content %}{% endblock %}
+</div>
+{% endblock %}

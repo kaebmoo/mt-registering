@@ -1,0 +1,126 @@
+
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block admin_content %}
+<div class="ui container">
+    
+
+    <h1 class="ui header">
+        <i class="dashboard icon"></i>
+        <div class="content">
+            Admin Dashboard
+            <div class="sub header">ภาพรวมระบบลงทะเบียน</div>
+        </div>
+    </h1>
+
+    <div class="ui four statistics">
+        <div class="statistic">
+            <div class="value">
+                <i class="users icon"></i> {{ total_employees }}
+            </div>
+            <div class="label">พนักงานทั้งหมด</div>
+        </div>
+        
+        <div class="statistic">
+            <div class="value">
+                <i class="calendar icon"></i> {{ total_meetings }}
+            </div>
+            <div class="label">การประชุมทั้งหมด</div>
+        </div>
+        
+        {% if active_meeting %}
+        <div class="statistic">
+            <div class="value">
+                <i class="check circle icon"></i> {{ total_registrations }}
+            </div>
+            <div class="label">ลงทะเบียนแล้ว</div>
+        </div>
+        
+        <div class="statistic">
+            <div class="value">
+                <i class="percentage icon"></i> 
+                {% if total_employees > 0 %}
+                    {{ "%.1f"|format((total_registrations / total_employees * 100)) }}%
+                {% else %}
+                    0%
+                {% endif %}
+            </div>
+            <div class="label">อัตราการลงทะเบียน</div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if active_meeting %}
+    <div class="ui segment">
+        <h3 class="ui header">
+            <i class="calendar check icon"></i>
+            การประชุมที่กำลังเปิดรับลงทะเบียน
+        </h3>
+        <div class="ui list">
+            <div class="item">
+                <i class="calendar icon"></i>
+                <div class="content">
+                    <div class="header">{{ active_meeting.topic }}</div>
+                    <div class="description">
+                        วันที่ {{ active_meeting.meeting_date.strftime('%d/%m/%Y') }}
+                        เวลา {{ active_meeting.start_time.strftime('%H:%M') }} - {{ active_meeting.end_time.strftime('%H:%M') }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <a href="{{ url_for('admin.view_registrations', meeting_id=active_meeting.id) }}" class="ui primary button">
+            <i class="list icon"></i> ดูรายชื่อผู้ลงทะเบียน
+        </a>
+        <a href="{{ url_for('admin.export_registrations', meeting_id=active_meeting.id) }}" class="ui green button">
+            <i class="download icon"></i> Export CSV
+        </a>
+    </div>
+
+    {% if recent_registrations %}
+    <div class="ui segment">
+        <h3 class="ui header">
+            <i class="clock outline icon"></i>
+            การลงทะเบียนล่าสุด
+        </h3>
+        <table class="ui celled table">
+            <thead>
+                <tr>
+                    <th>เวลา</th>
+                    <th>รหัสพนักงาน</th>
+                    <th>ชื่อ</th>
+                    <th>หน่วยงาน</th>
+                    <th>ประเภท</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reg in recent_registrations %}
+                <tr>
+                    <td>{{ reg.registration_time.strftime('%H:%M:%S') }}</td>
+                    <td>{{ reg.emp_id or '-' }}</td>
+                    <td>{{ reg.emp_name }}</td>
+                    <td>{{ reg.cc_name or '-' }}</td>
+                    <td>
+                        {% if reg.is_manual_entry %}
+                            <div class="ui yellow label">กรอกเอง</div>
+                        {% else %}
+                            <div class="ui green label">อัตโนมัติ</div>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div class="ui warning message">
+        <div class="header">ไม่มีการประชุมที่เปิดรับลงทะเบียน</div>
+        <p>กรุณา <a href="{{ url_for('admin.create_meeting') }}">สร้างการประชุมใหม่</a></p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

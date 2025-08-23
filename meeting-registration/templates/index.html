@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}แบบฟอร์มลงทะเบียนการประชุม{% endblock %}
+
+{% block content %}
+<div class="ui container">
+    {% if meeting %}
+        <div class="ui raised blue segment">
+            <h2 class="ui header">
+                <i class="calendar alternate outline icon"></i>
+                <div class="content">
+                    หัวข้อการประชุม: {{ meeting.topic }}
+                    <div class="sub header">
+                        <i class="clock outline icon"></i> วันที่: {{ meeting.meeting_date.strftime('%d/%m/%Y') }}
+                        เวลา: {{ meeting.start_time.strftime('%H:%M') }} - {{ meeting.end_time.strftime('%H:%M') }}
+                    </div>
+                </div>
+            </h2>
+            <p>
+                <i class="map marker alternate icon"></i>
+                <strong>สถานที่:</strong> ห้องประชุม {{ meeting.room }} 
+                ชั้น {{ meeting.floor }} 
+                {{ meeting.building }}
+            </p>
+        </div>
+
+        <div class="ui segment">
+            <form class="ui form" id="registrationForm" method="POST" action="{{ url_for('register') }}">
+                <h3 class="ui dividing header">
+                    <i class="user icon"></i>
+                    ลงทะเบียนเข้าร่วมประชุม
+                </h3>
+                
+                <div class="field">
+                    <label>รหัสพนักงาน <span style="color: gray;">(ไม่ต้องใส่ 0 ด้านหน้า)</span></label>
+                    <div class="ui left icon input">
+                        <i class="id card outline icon"></i>
+                        <input type="text" 
+                               name="emp_id" 
+                               id="emp_id" 
+                               placeholder="กรอกรหัสพนักงาน" 
+                               required 
+                               minlength="6"
+                               pattern="[0-9]{6,}"
+                               title="กรุณากรอกรหัสพนักงานอย่างน้อย 6 หลัก">
+                    </div>
+                </div>
+                
+                <div class="field">
+                    <button class="ui primary large button" type="submit" id="submitBtn">
+                        <i class="sign in alternate icon"></i>
+                        ลงทะเบียน
+                    </button>
+                </div>
+                
+                <div class="ui info message">
+                    <div class="header">หมายเหตุ</div>
+                    <ul class="list">
+                        <li>หากไม่พบข้อมูลในระบบ คุณสามารถกรอกข้อมูลด้วยตนเองได้</li>
+                        <li>ระบบจะป้องกันการลงทะเบียนซ้ำโดยอัตโนมัติ</li>
+                    </ul>
+                </div>
+            </form>
+        </div>
+    {% else %}
+        <div class="ui warning message">
+            <div class="header">
+                <i class="exclamation triangle icon"></i>
+                ไม่มีการประชุมที่เปิดให้ลงทะเบียน
+            </div>
+            <p>กรุณาติดต่อผู้ดูแลระบบ</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Auto-focus on emp_id input
+        $('#emp_id').focus();
+        
+        // Real-time validation
+        $('#emp_id').on('input', function() {
+            var value = $(this).val();
+            // Remove non-numeric characters
+            value = value.replace(/\D/g, '');
+            $(this).val(value);
+            
+            // Check length
+            if (value.length >= 6) {
+                $(this).parent().removeClass('error');
+                $('#submitBtn').removeClass('disabled');
+            } else {
+                $('#submitBtn').addClass('disabled');
+            }
+        });
+        
+        // Form validation before submit
+        $('#registrationForm').on('submit', function(e) {
+            var empId = $('#emp_id').val();
+            if (empId.length < 6) {
+                e.preventDefault();
+                $('#emp_id').parent().addClass('error');
+                alert('รหัสพนักงานต้องมีอย่างน้อย 6 หลัก');
+                return false;
+            }
+        });
+    });
+</script>
+{% endblock %}

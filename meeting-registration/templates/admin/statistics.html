@@ -1,0 +1,63 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}สถิติการลงทะเบียน{% endblock %}
+
+{% block admin_content %}
+
+    <h1 class="ui header">
+        <i class="chart bar icon"></i>
+        <div class="content">
+            สถิติการลงทะเบียน
+            <div class="sub header">{{ meeting.topic }}</div>
+        </div>
+    </h1>
+
+    <div class="ui grid">
+        <div class="eight wide column">
+            <h3>การลงทะเบียนแยกตามแผนก</h3>
+            <table class="ui celled table">
+                <thead>
+                    <tr>
+                        <th>แผนก</th>
+                        <th>จำนวน</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stat in dept_stats %}
+                    <tr>
+                        <td>{{ stat.sec_short or 'ไม่ระบุ' }}</td>
+                        <td>{{ stat.count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="eight wide column">
+            <h3>ประเภทการลงทะเบียน</h3>
+            <table class="ui celled table">
+                <thead>
+                    <tr>
+                        <th>ประเภท</th>
+                        <th>จำนวน</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stat in manual_stats %}
+                    <tr>
+                        <td>
+                            {% if stat.is_manual_entry %}
+                                ลงทะเบียนด้วยตนเอง
+                            {% else %}
+                                ลงทะเบียนอัตโนมัติ
+                            {% endif %}
+                        </td>
+                        <td>{{ stat.count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+{% endblock %}

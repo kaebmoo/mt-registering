@@ -1,0 +1,60 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}รายชื่อพนักงาน{% endblock %}
+
+{% block admin_content %}
+
+    <h1 class="ui header">
+        <i class="users icon"></i>
+        <div class="content">
+            รายชื่อพนักงาน
+            <div class="sub header">ข้อมูลพนักงานทั้งหมดในระบบ</div>
+        </div>
+    </h1>
+
+    <div class="ui segment">
+        <form class="ui form" method="GET">
+            <div class="field">
+                <div class="ui icon input">
+                    <input type="text" name="search" placeholder="ค้นหา..." value="{{ search }}">
+                    <i class="search icon"></i>
+                </div>
+                <button class="ui button" type="submit">ค้นหา</button>
+            </div>
+        </form>
+    </div>
+
+    <table class="ui celled table">
+        <thead>
+            <tr>
+                <th>รหัสพนักงาน</th>
+                <th>ชื่อ-นามสกุล</th>
+                <th>ตำแหน่ง</th>
+                <th>ส่วนงาน</th>
+                <th>ศูนย์ต้นทุน</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for emp in employees.items %}
+            <tr>
+                <td>{{ emp.emp_id }}</td>
+                <td>{{ emp.emp_name }}</td>
+                <td>{{ emp.position or '-' }}</td>
+                <td>{{ emp.sec_short or '-' }}</td>
+                <td>{{ emp.cc_name or '-' }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" class="center aligned">ไม่พบข้อมูล</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    {% if employees.pages > 1 %}
+    <div class="ui pagination menu">
+        <!-- pagination code here -->
+    </div>
+    {% endif %}
+{% endblock %}
