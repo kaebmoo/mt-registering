@@ -1,9 +1,9 @@
 {% extends "admin/admin_base.html" %}
+{% import "admin/components/pagination.html" as pagination_macros %}
 
 {% block title %}รายชื่อพนักงาน{% endblock %}
 
 {% block admin_content %}
-
     <h1 class="ui header">
         <i class="users icon"></i>
         <div class="content">
@@ -13,15 +13,34 @@
     </h1>
 
     <div class="ui segment">
-        <form class="ui form" method="GET">
-            <div class="field">
-                <div class="ui icon input">
-                    <input type="text" name="search" placeholder="ค้นหา..." value="{{ search }}">
-                    <i class="search icon"></i>
+        <form class="ui form" method="GET" action="{{ url_for('admin.employees') }}">
+            <div class="fields">
+                <div class="twelve wide field">
+                    <div class="ui icon input">
+                        <input type="text" name="search" placeholder="ค้นหารหัส, ชื่อ, ตำแหน่ง, แผนก..." value="{{ search }}">
+                        <i class="search icon"></i>
+                    </div>
                 </div>
-                <button class="ui button" type="submit">ค้นหา</button>
+                <div class="four wide field">
+                    <button class="ui primary button" type="submit">
+                        <i class="search icon"></i> ค้นหา
+                    </button>
+                    {% if search %}
+                    <a href="{{ url_for('admin.employees') }}" class="ui button">
+                        <i class="times icon"></i> ล้าง
+                    </a>
+                    {% endif %}
+                </div>
             </div>
         </form>
+        
+        <div class="ui right floated label">
+            {% if search %}
+                พบ {{ employees.total }} รายการ
+            {% else %}
+                ทั้งหมด {{ employees.total }} คน
+            {% endif %}
+        </div>
     </div>
 
     <table class="ui celled table">
@@ -45,16 +64,24 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="5" class="center aligned">ไม่พบข้อมูล</td>
+                <td colspan="5" class="center aligned">
+                    {% if search %}
+                        ไม่พบข้อมูลที่ค้นหา
+                    {% else %}
+                        ไม่มีข้อมูลพนักงาน
+                    {% endif %}
+                </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 
     <!-- Pagination -->
-    {% if employees.pages > 1 %}
-    <div class="ui pagination menu">
-        <!-- pagination code here -->
-    </div>
+   <!-- Pagination - ส่ง search parameter -->
+    {% if search %}
+        {{ pagination_macros.render_pagination(employees, 'admin.employees', {'search': search}) }}
+    {% else %}
+        {{ pagination_macros.render_pagination(employees, 'admin.employees') }}
     {% endif %}
+
 {% endblock %}

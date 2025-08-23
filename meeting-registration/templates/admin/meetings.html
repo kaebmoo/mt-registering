@@ -1,4 +1,5 @@
 {% extends "admin/admin_base.html" %}
+{% import "admin/components/pagination.html" as pagination_macros %}
 
 {% block title %}จัดการการประชุม{% endblock %}
 
@@ -18,6 +19,9 @@
         <a href="{{ url_for('admin.create_meeting') }}" class="ui primary button">
             <i class="plus icon"></i> สร้างการประชุมใหม่
         </a>
+        <div class="ui right floated label">
+            ทั้งหมด {{ meetings.total }} การประชุม
+        </div>
     </div>
 
     <table class="ui celled table">
@@ -33,7 +37,7 @@
             </tr>
         </thead>
         <tbody>
-            {% for meeting in meetings %}
+            {% for meeting in meetings.items %}
             <tr>
                 <td>{{ meeting.id }}</td>
                 <td>{{ meeting.topic }}</td>
@@ -67,5 +71,7 @@
             {% endfor %}
         </tbody>
     </table>
+    <!-- Pagination -->
+    {{ pagination_macros.render_pagination(meetings, 'admin.meetings') }}
 
 {% endblock %}

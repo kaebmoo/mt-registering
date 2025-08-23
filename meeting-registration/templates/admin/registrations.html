@@ -3,8 +3,6 @@
 {% block title %}รายชื่อผู้ลงทะเบียน - {{ meeting.topic }}{% endblock %}
 
 {% block admin_content %}
-<div class="ui container">
-
     <h1 class="ui header">
         <i class="users icon"></i>
         <div class="content">
@@ -23,7 +21,7 @@
                 <div class="value">
                     {{ registrations.items | selectattr('is_manual_entry', 'equalto', True) | list | length }}
                 </div>
-                <div class="label">ลงทะเบียนด้วยตนเอง</div>
+                <div class="label">ลงทะเบียนด้วยตนเอง (หน้านี้)</div>
             </div>
         </div>
     </div>
@@ -32,11 +30,28 @@
         <a href="{{ url_for('admin.export_registrations', meeting_id=meeting.id) }}" class="ui green button">
             <i class="download icon"></i> Export CSV
         </a>
+        
+        <!-- ปุ่มลบที่เลือก -->
+        <button type="button" onclick="deleteSelected()" class="ui red button">
+            <i class="trash icon"></i> ลบที่เลือก
+        </button>
+        
+        <!-- ปุ่มลบทั้งหมด -->
+        <button type="button" onclick="deleteAll()" class="ui red button">
+            <i class="trash alternate icon"></i> ลบทั้งหมด
+        </button>
     </div>
 
+    <!-- Table แยกออกจาก form -->
     <table class="ui celled striped table">
         <thead>
             <tr>
+                <th class="center aligned">
+                    <div class="ui checkbox">
+                        <input type="checkbox" id="selectAll">
+                        <label></label>
+                    </div>
+                </th>
                 <th>ลำดับ</th>
                 <th>รหัสพนักงาน</th>
                 <th>ชื่อ-นามสกุล</th>
@@ -45,11 +60,18 @@
                 <th>ศูนย์ต้นทุน</th>
                 <th>เวลาลงทะเบียน</th>
                 <th>ประเภท</th>
+                <th>การดำเนินการ</th>
             </tr>
         </thead>
         <tbody>
             {% for reg in registrations.items %}
-            <tr>
+            <tr id="row-{{ reg.id }}">
+                <td class="center aligned">
+                    <div class="ui checkbox">
+                        <input type="checkbox" class="delete-checkbox" name="registration_ids[]" value="{{ reg.id }}">
+                        <label></label>
+                    </div>
+                </td>
                 <td>{{ (registrations.page - 1) * registrations.per_page + loop.index }}</td>
                 <td>{{ reg.emp_id or '-' }}</td>
                 <td>{{ reg.emp_name }}</td>
@@ -64,44 +86,147 @@
                         <div class="ui green label">อัตโนมัติ</div>
                     {% endif %}
                 </td>
+                <td class="center aligned">
+                    <!-- ใช้ JavaScript แทน form -->
+                    <button onclick="deleteSingle({{ reg.id }}, '{{ reg.emp_name }}', {{ meeting.id }}, {{ registrations.page }})" 
+                            class="ui mini red icon button" 
+                            title="ลบรายการนี้">
+                        <i class="trash icon"></i>
+                    </button>
+                </td>
             </tr>
             {% else %}
             <tr>
-                <td colspan="8" class="center aligned">ยังไม่มีผู้ลงทะเบียน</td>
+                <td colspan="10" class="center aligned">ยังไม่มีผู้ลงทะเบียน</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 
+    <!-- Hidden form สำหรับ bulk delete -->
+    <form id="bulkDeleteForm" method="POST" action="{{ url_for('admin.delete_multiple_registrations') }}" style="display: none;">
+        <input type="hidden" name="meeting_id" value="{{ meeting.id }}">
+        <input type="hidden" id="selectedIds" name="selectedIds">
+    </form>
+
+    <!-- Hidden form สำหรับ single delete -->
+    <form id="singleDeleteForm" method="POST" style="display: none;">
+        <!-- จะ set action ด้วย JavaScript -->
+    </form>
+
     <!-- Pagination -->
     {% if registrations.pages > 1 %}
-    <div class="ui pagination menu">
-        {% if registrations.has_prev %}
-        <a class="item" href="{{ url_for('admin.view_registrations', meeting_id=meeting.id, page=registrations.prev_num) }}">
-            <i class="left arrow icon"></i>
-        </a>
-        {% endif %}
-        
-        {% for page_num in registrations.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=3) %}
-            {% if page_num %}
-                {% if page_num != registrations.page %}
-                    <a class="item" href="{{ url_for('admin.view_registrations', meeting_id=meeting.id, page=page_num) }}">
-                        {{ page_num }}
-                    </a>
-                {% else %}
-                    <div class="active item">{{ page_num }}</div>
-                {% endif %}
-            {% else %}
-                <div class="disabled item">...</div>
+        <div class="ui pagination menu">
+            {% if registrations.has_prev %}
+            <a class="item" href="{{ url_for('admin.view_registrations', meeting_id=meeting.id, page=registrations.prev_num) }}">
+                <i class="left arrow icon"></i> ก่อนหน้า
+            </a>
             {% endif %}
-        {% endfor %}
-        
-        {% if registrations.has_next %}
-        <a class="item" href="{{ url_for('admin.view_registrations', meeting_id=meeting.id, page=registrations.next_num) }}">
-            <i class="right arrow icon"></i>
-        </a>
-        {% endif %}
-    </div>
+            
+            {% for page_num in registrations.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=3) %}
+                {% if page_num %}
+                    {% if page_num != registrations.page %}
+                        <a class="item" href="{{ url_for('admin.view_registrations', meeting_id=meeting.id, page=page_num) }}">
+                            {{ page_num }}
+                        </a>
+                    {% else %}
+                        <div class="active item">{{ page_num }}</div>
+                    {% endif %}
+                {% else %}
+                    <div class="disabled item">...</div>
+                {% endif %}
+            {% endfor %}
+            
+            {% if registrations.has_next %}
+            <a class="item" href="{{ url_for('admin.view_registrations', meeting_id=meeting.id, page=registrations.next_num) }}">
+                ถัดไป <i class="right arrow icon"></i>
+            </a>
+            {% endif %}
+        </div>
     {% endif %}
-</div>
+
+    <!-- Modal สำหรับยืนยันการลบทั้งหมด -->
+    <div class="ui small modal" id="deleteAllModal">
+        <div class="header">
+            <i class="warning sign icon"></i> ยืนยันการลบทั้งหมด
+        </div>
+        <div class="content">
+            <p>คุณกำลังจะลบการลงทะเบียนทั้งหมด {{ registrations.total }} รายการ</p>
+            <p class="ui red text">การดำเนินการนี้ไม่สามารถยกเลิกได้!</p>
+            <form id="deleteAllForm" method="POST" action="{{ url_for('admin.delete_all_registrations', meeting_id=meeting.id) }}">
+                <div class="ui input">
+                    <input type="text" name="confirm" placeholder="พิมพ์ DELETE_ALL เพื่อยืนยัน">
+                </div>
+            </form>
+        </div>
+        <div class="actions">
+            <div class="ui cancel button">ยกเลิก</div>
+            <button type="submit" form="deleteAllForm" class="ui red button">ลบทั้งหมด</button>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Initialize Semantic UI components
+        $('.ui.checkbox').checkbox();
+        $('.ui.modal').modal();
+        
+        // Select all checkbox
+        $('#selectAll').on('change', function() {
+            $('.delete-checkbox').prop('checked', this.checked);
+        });
+        
+        // Uncheck select all if any item unchecked
+        $('.delete-checkbox').on('change', function() {
+            if (!this.checked) {
+                $('#selectAll').prop('checked', false);
+            }
+        });
+    });
+    
+    // Delete single item
+    function deleteSingle(id, name, meetingId, page) {
+        if (confirm('ยืนยันการลบ ' + name + '?')) {
+            var form = document.getElementById('singleDeleteForm');
+            form.action = "{{ url_for('admin.delete_registration', registration_id=0) }}".replace('0', id) + '?page=' + page;
+            form.submit();
+        }
+    }
+    
+    // Delete selected items (multiple)
+    function deleteSelected() {
+        var checkedBoxes = $('.delete-checkbox:checked');
+        if (checkedBoxes.length === 0) {
+            alert('กรุณาเลือกรายการที่ต้องการลบ');
+            return;
+        }
+        
+        if (confirm('ยืนยันการลบ ' + checkedBoxes.length + ' รายการ?')) {
+            // สร้าง form data
+            var form = document.getElementById('bulkDeleteForm');
+            
+            // Clear existing checkboxes in form
+            $(form).find('input[name="registration_ids[]"]').remove();
+            
+            // Add selected IDs to form
+            checkedBoxes.each(function() {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'registration_ids[]';
+                input.value = this.value;
+                form.appendChild(input);
+            });
+            
+            form.submit();
+        }
+    }
+    
+    // Delete all items
+    function deleteAll() {
+        $('#deleteAllModal').modal('show');
+    }
+</script>
 {% endblock %}

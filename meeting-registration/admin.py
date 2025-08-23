@@ -115,7 +115,14 @@ def dashboard():
 @login_required
 def meetings():
     """Manage meetings"""
-    meetings = Meeting.query.order_by(desc(Meeting.created_at)).all()
+    page = request.args.get('page', 1, type=int)
+    per_page = 10  # จำนวนรายการต่อหน้า
+
+    meetings = Meeting.query.order_by(desc(Meeting.created_at)).paginate(
+        page=page, 
+        per_page=per_page, 
+        error_out=False
+    )
     return render_template('admin/meetings.html', meetings=meetings)
 
 @admin_bp.route('/meetings/create', methods=['GET', 'POST'])
@@ -240,6 +247,7 @@ def export_registrations(meeting_id):
 def employees():
     """View employees"""
     page = request.args.get('page', 1, type=int)
+    per_page = 50  # จำนวนรายการต่อหน้า
     search = request.args.get('search', '')
     
     query = Employee.query
@@ -250,17 +258,82 @@ def employees():
                 Employee.emp_id.contains(search),
                 Employee.emp_name.contains(search),
                 Employee.position.contains(search),
+                Employee.sec_short.contains(search),
                 Employee.cc_name.contains(search)
             )
         )
     
     employees = query.order_by(Employee.emp_id).paginate(
-        page=page, per_page=50, error_out=False
+        page=page, per_page=per_page, error_out=False
     )
     
     return render_template('admin/employees.html', 
                          employees=employees, 
                          search=search)
+
+@admin_bp.route('/registrations/<int:registration_id>/delete', methods=['POST'])
+@login_required
+def delete_registration(registration_id):
+    """Delete a single registration"""
+    registration = Registration.query.get_or_404(registration_id)
+    meeting_id = registration.meeting_id
+    emp_name = registration.emp_name
+    
+    try:
+        db.session.delete(registration)
+        db.session.commit()
+        # Clear cache ถ้ามี
+        cache.delete('active_meeting')
+        flash(f'ลบการลงทะเบียนของ {emp_name} เรียบร้อยแล้ว', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'เกิดข้อผิดพลาดในการลบ: {str(e)}', 'error')
+    
+    # Redirect กลับไปหน้าเดิมพร้อม page number
+    page = request.args.get('page', 1, type=int)
+    return redirect(url_for('admin.view_registrations', meeting_id=meeting_id, page=page))
+
+@admin_bp.route('/registrations/delete_multiple', methods=['POST'])
+@login_required
+def delete_multiple_registrations():
+    """Delete multiple registrations"""
+    registration_ids = request.form.getlist('registration_ids[]')
+    meeting_id = request.form.get('meeting_id')
+    
+    if not registration_ids:
+        flash('กรุณาเลือกรายการที่ต้องการลบ', 'warning')
+        return redirect(url_for('admin.view_registrations', meeting_id=meeting_id))
+    
+    try:
+        Registration.query.filter(Registration.id.in_(registration_ids)).delete(synchronize_session=False)
+        db.session.commit()
+        flash(f'ลบ {len(registration_ids)} รายการเรียบร้อยแล้ว', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'เกิดข้อผิดพลาดในการลบ: {str(e)}', 'error')
+    
+    return redirect(url_for('admin.view_registrations', meeting_id=meeting_id))
+
+@admin_bp.route('/registrations/<int:meeting_id>/delete_all', methods=['POST'])
+@login_required
+def delete_all_registrations(meeting_id):
+    """Delete all registrations for a meeting"""
+    meeting = Meeting.query.get_or_404(meeting_id)
+    
+    if request.form.get('confirm') != 'DELETE_ALL':
+        flash('กรุณายืนยันการลบทั้งหมด', 'warning')
+        return redirect(url_for('admin.view_registrations', meeting_id=meeting_id))
+    
+    try:
+        count = Registration.query.filter_by(meeting_id=meeting_id).count()
+        Registration.query.filter_by(meeting_id=meeting_id).delete()
+        db.session.commit()
+        flash(f'ลบการลงทะเบียนทั้งหมด {count} รายการเรียบร้อยแล้ว', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'เกิดข้อผิดพลาดในการลบ: {str(e)}', 'error')
+    
+    return redirect(url_for('admin.view_registrations', meeting_id=meeting_id))
 
 @admin_bp.route('/statistics')
 @login_required

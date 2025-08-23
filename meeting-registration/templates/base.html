@@ -83,6 +83,34 @@
         .loading-overlay.active {
             display: flex;
         }
+
+        /* Pagination styles */
+        .ui.pagination.menu {
+            margin-top: 2em;
+            margin-bottom: 1em;
+        }
+
+        .ui.pagination.menu .item {
+            min-width: 3em;
+            text-align: center;
+        }
+
+        .ui.pagination.menu .active.item {
+            background-color: #2185d0;
+            color: white;
+        }
+
+        /* Responsive pagination */
+        @media only screen and (max-width: 768px) {
+            .ui.pagination.menu .item {
+                padding: 0.5em;
+                min-width: 2em;
+            }
+            
+            .ui.pagination.menu .item i.icon {
+                margin: 0;
+            }
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
