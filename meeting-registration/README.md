@@ -297,25 +297,49 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO your_username;
 
 ```javascript 
 module.exports = {
-  apps: [{
-    name: 'meeting-registration',
-    script: '/usr/local/bin/gunicorn',
-    args: '--bind 0.0.0.0:9000 --workers 4 --timeout 120 "app:create_app()"',
-    cwd: '/home/your-user/meeting-registration',
-    interpreter: 'none',
-    env: {
-      FLASK_ENV: 'production',
-      PORT: 9000
+  apps: [
+    {
+      // --- Process 1: Flask/Gunicorn Web App (เหมือนเดิม) ---
+      name: 'meeting-registration',
+      script: '/usr/local/bin/gunicorn', // หรือ path ไปยัง gunicorn ใน venv ของคุณ
+      args: '--bind 0.0.0.0:9000 --workers 4 --timeout 120 "app:create_app()"',
+      cwd: '/home/your-user/meeting-registration', // << แก้ไข path นี้
+      interpreter: 'none',
+      env: {
+        FLASK_ENV: 'production',
+        PORT: 9000
+        // ใส่ .env variables อื่นๆ ที่จำเป็นที่นี่
+      },
+      error_file: './logs/pm2-app-error.log',
+      out_file: './logs/pm2-app-out.log',
+      log_file: './logs/pm2-app-combined.log',
+      time: true,
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '1G'
     },
-    error_file: './logs/pm2-error.log',
-    out_file: './logs/pm2-out.log',
-    log_file: './logs/pm2-combined.log',
-    time: true,
-    instances: 1,
-    autorestart: true,
-    watch: false,
-    max_memory_restart: '1G'
-  }]
+    {
+      // --- Process 2: Celery Worker (ส่วนที่เพิ่มเข้ามา) ---
+      name: 'meeting-worker',
+      script: '/home/your-user/meeting-registration/venv/bin/celery', // << แก้ไข path ไปยัง celery ใน venv
+      args: '-A celery_worker.celery_app worker --loglevel=info',
+      cwd: '/home/your-user/meeting-registration', // << แก้ไข path นี้
+      interpreter: 'none',
+      env: {
+        FLASK_ENV: 'production'
+        // ใส่ .env variables อื่นๆ ที่จำเป็นที่นี่
+      },
+      error_file: './logs/pm2-worker-error.log',
+      out_file: './logs/pm2-worker-out.log',
+      log_file: './logs/pm2-worker-combined.log',
+      time: true,
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '500M' // Worker อาจใช้ memory น้อยกว่า
+    }
+  ]
 };
 ```
 

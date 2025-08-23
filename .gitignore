@@ -14,3 +14,4 @@ php/config/.env
 php/admin/users.json
 php/cache/employee_cache.php
 /php/vendor
+meeting-registration/ecosystem.config.js
