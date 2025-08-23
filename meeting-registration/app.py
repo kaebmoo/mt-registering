@@ -170,10 +170,22 @@ def create_app(config_name=None):
                 session[last_registration_key] = datetime.now().isoformat()
                 
                 # Send to Google Sheets (async)
+                # Send to Google Sheets (async)
                 try:
-                    send_to_google_sheets(registration)
+                    # Create a dictionary of data for the task
+                    reg_data_for_task = {
+                        'รหัสพนักงาน': registration.emp_id,
+                        'ชื่อ': registration.emp_name,
+                        'ตำแหน่ง': registration.position or '',
+                        'ส่วนงานย่อ': registration.sec_short or '',
+                        'ชื่อศูนย์ต้นทุน': registration.cc_name or '',
+                        'เวลาลงทะเบียน': registration.registration_time.isoformat(),
+                        'ลงทะเบียนด้วยตนเอง': 'ใช่' if registration.is_manual_entry else 'ไม่ใช่'
+                    }
+                    # Call the Celery task asynchronously using .delay()
+                    send_to_google_sheets_task.delay(reg_data_for_task, app.config['GOOGLE_SCRIPT_URL'])
                 except Exception as e:
-                    logger.error(f"Failed to send to Google Sheets: {e}")
+                    logger.error(f"Failed to queue task for Google Sheets: {e}")
                 
                 flash('ลงทะเบียนสำเร็จ', 'success')
                 return render_template('registration_success.html', 
@@ -251,10 +263,20 @@ def create_app(config_name=None):
             db.session.commit()
             
             # Send to Google Sheets
+            # Send to Google Sheets (async)
             try:
-                send_to_google_sheets(registration)
+                reg_data_for_task = {
+                    'รหัสพนักงาน': registration.emp_id,
+                    'ชื่อ': registration.emp_name,
+                    'ตำแหน่ง': registration.position or '',
+                    'ส่วนงานย่อ': registration.sec_short or '',
+                    'ชื่อศูนย์ต้นทุน': registration.cc_name or '',
+                    'เวลาลงทะเบียน': registration.registration_time.isoformat(),
+                    'ลงทะเบียนด้วยตนเอง': 'ใช่' if registration.is_manual_entry else 'ไม่ใช่'
+                }
+                send_to_google_sheets_task.delay(reg_data_for_task, app.config['GOOGLE_SCRIPT_URL'])
             except Exception as e:
-                logger.error(f"Failed to send to Google Sheets: {e}")
+                logger.error(f"Failed to queue task for Google Sheets: {e}")
             
             flash('ลงทะเบียนด้วยตนเองสำเร็จ', 'success')
             return render_template('registration_success.html', 
