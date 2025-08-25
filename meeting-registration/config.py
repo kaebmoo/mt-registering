@@ -62,9 +62,19 @@ class Config:
         }
     }
     
-    # Add retry configuration
-    DATABASE_RETRY_COUNT = 3
-    DATABASE_RETRY_DELAY = 1  # seconds
+    # Database retry configuration
+    DATABASE_RETRY_COUNT = int(os.environ.get('DATABASE_RETRY_COUNT', '3'))
+    DATABASE_RETRY_DELAY = int(os.environ.get('DATABASE_RETRY_DELAY', '1'))
+    DATABASE_RETRY_BACKOFF = os.environ.get('DATABASE_RETRY_BACKOFF', 'exponential')  # linear or exponential
+    DATABASE_MAX_RETRY_DELAY = int(os.environ.get('DATABASE_MAX_RETRY_DELAY', '30'))  # max seconds
+    
+    # Cache configuration
+    CACHE_KEY_PREFIX = os.environ.get('CACHE_KEY_PREFIX', 'meeting_reg_')
+    CACHE_ACTIVE_MEETING_TIMEOUT = int(os.environ.get('CACHE_ACTIVE_MEETING_TIMEOUT', '60'))
+    
+    # Logging configuration
+    LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
+    LOG_DATABASE_QUERIES = os.environ.get('LOG_DATABASE_QUERIES', 'false').lower() == 'true'
 
 class DevelopmentConfig(Config):
     """Development configuration"""
