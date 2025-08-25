@@ -14,6 +14,10 @@ from flask_migrate import Migrate
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import OperationalError, DatabaseError, DisconnectionError
+from sqlalchemy import event, text
+from sqlalchemy.pool import Pool
+import time
 from werkzeug.middleware.proxy_fix import ProxyFix
 from pathlib import Path
 
@@ -333,6 +337,26 @@ def create_app(config_name=None):
         db.session.rollback()
         return render_template('500.html'), 500
     
+    # Database error handlers
+    @event.listens_for(Pool, "connect")
+    def set_sqlite_pragma(dbapi_conn, connection_record):
+        """Set connection parameters when connecting"""
+        if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgresql'):
+            cursor = dbapi_conn.cursor()
+            try:
+                cursor.execute(text("SET statement_timeout = '30s'"))
+                cursor.close()
+            except:
+                pass
+    
+    @app.errorhandler(OperationalError)
+    def handle_db_error(error):
+        """Handle database connection errors"""
+        db.session.rollback()
+        logger.error(f"Database error: {error}")
+        flash('เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล กรุณาลองใหม่', 'error')
+        return redirect(url_for('index'))
+    
     def send_to_google_sheets(registration):
         """Send registration data to Google Sheets"""
         if not app.config.get('GOOGLE_SCRIPT_URL'):
@@ -363,8 +387,44 @@ def create_app(config_name=None):
 
 # Create app instance for development
 if __name__ == '__main__':
+    import sys
     
     app = create_app('development')
     with app.app_context():
-        db.create_all()
+        try:
+            # Test database connection
+            db.session.execute(text('SELECT 1'))
+            print("Database connected successfully!")
+            
+            # Create tables if not exist
+            db.create_all()
+            print("Database tables created/verified!")
+
+            # Test cache connection
+            try:
+                cache.set('test', 'ok', timeout=1)
+                if cache.get('test') == 'ok':
+                    print("Cache (Redis) connected successfully!")
+                else:
+                    print("Cache not working, using memory cache")
+            except:
+                print("Redis not available, using memory cache")
+            
+        except OperationalError as e:
+            print("Database connection failed!")
+            print(f"Error: {e}")
+            print("\nPlease check:")
+            print("1. PostgreSQL is running")
+            print("2. Database credentials in .env file")
+            print("3. Database 'meeting_registration' exists")
+            print("\nTry running:")
+            print("  brew services start postgresql@14  # For macOS")
+            print("  createdb meeting_registration      # Create database")
+            sys.exit(1)
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            sys.exit(1)
+    
+    # Start Flask app
+    print(f"Starting Flask app on http://0.0.0.0:9000")
     app.run(host='0.0.0.0', port=9000, debug=True)

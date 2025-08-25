@@ -1,8 +1,15 @@
+# meeting-registration/models.py
+
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from sqlalchemy import UniqueConstraint, Index
 from extensions import cache
+from sqlalchemy.exc import OperationalError
+import time
+import logging
+from flask import current_app
 
+logger = logging.getLogger(__name__)
 db = SQLAlchemy()
 
 class Employee(db.Model):
@@ -48,26 +55,46 @@ class Employee(db.Model):
     @classmethod
     def search_by_id(cls, emp_id):
         """Search employee by ID with various formats"""
-        emp_id = str(emp_id).strip()
+        max_retries = current_app.config.get('DATABASE_RETRY_COUNT', 3)
+        retry_delay = current_app.config.get('DATABASE_RETRY_DELAY', 1)
         
-        # ค้นหาแบบตรงกัน
-        employee = cls.query.filter_by(emp_id=emp_id).first()
-        if employee:
-            return employee
-        
-        # ลอง trim leading zeros
-        emp_id_no_leading = emp_id.lstrip('0')
-        if len(emp_id_no_leading) >= 6:
-            employee = cls.query.filter_by(emp_id=emp_id_no_leading).first()
-            if employee:
-                return employee
-        
-        # ลองเติม 0 ข้างหน้าให้ครบ 8 หลัก (ถ้าน้อยกว่า 8)
-        if len(emp_id) < 8:
-            emp_id_padded = emp_id.zfill(8)
-            employee = cls.query.filter_by(emp_id=emp_id_padded).first()
-            if employee:
-                return employee
+        for attempt in range(max_retries):
+            try:
+                emp_id = str(emp_id).strip()
+                
+                # ค้นหาแบบตรงกัน
+                employee = cls.query.filter_by(emp_id=emp_id).first()
+                if employee:
+                    return employee
+                
+                # ลอง trim leading zeros
+                emp_id_no_leading = emp_id.lstrip('0')
+                if len(emp_id_no_leading) >= 6:
+                    employee = cls.query.filter_by(emp_id=emp_id_no_leading).first()
+                    if employee:
+                        return employee
+                
+                # ลองเติม 0 ข้างหน้าให้ครบ 8 หลัก
+                if len(emp_id) < 8:
+                    emp_id_padded = emp_id.zfill(8)
+                    employee = cls.query.filter_by(emp_id=emp_id_padded).first()
+                    if employee:
+                        return employee
+                
+                return None
+                
+            except OperationalError as e:
+                logger.warning(f"Database error on attempt {attempt + 1}: {e}")
+                if attempt < max_retries - 1:
+                    try:
+                        db.session.rollback()
+                        db.session.remove()
+                        time.sleep(retry_delay * (attempt + 1))
+                    except:
+                        pass
+                else:
+                    logger.error(f"Failed after {max_retries} attempts")
+                    return None
         
         return None
 
@@ -112,8 +139,32 @@ class Meeting(db.Model):
     @cache.cached(timeout=60, key_prefix='active_meeting')
     def get_active_meeting(cls):
         """Get the currently active meeting (cached for 60 seconds)"""
-        print("Fetching active meeting from DB...") # DEBUG: to see when it hits the DB
-        return cls.query.filter_by(is_active=True).order_by(cls.created_at.desc()).first()
+        max_retries = current_app.config.get('DATABASE_RETRY_COUNT', 3)
+        retry_delay = current_app.config.get('DATABASE_RETRY_DELAY', 1)
+
+        for attempt in range(max_retries):
+            try:
+                logger.debug(f"Fetching active meeting from DB (attempt {attempt + 1})")
+                result = cls.query.filter_by(is_active=True).order_by(cls.created_at.desc()).first()
+                return result
+            except OperationalError as e:
+                logger.warning(f"Database connection error on attempt {attempt + 1}: {e}")
+                
+                if attempt < max_retries - 1:
+                    # Try to reconnect
+                    try:
+                        db.session.rollback()
+                        db.session.remove()
+                        time.sleep(retry_delay * (attempt + 1))
+                    except:
+                        pass
+                else:
+                    # Clear cache on final failure
+                    cache.delete('active_meeting')
+                    logger.error(f"Failed to get active meeting after {max_retries} attempts")
+                    return None
+        
+        return None
 
 
 class Registration(db.Model):

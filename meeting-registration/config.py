@@ -1,3 +1,4 @@
+# meeting-registration/config.py
 import os
 from datetime import timedelta
 
@@ -42,10 +43,28 @@ class Config:
     CACHE_TYPE = 'RedisCache'
     CACHE_DEFAULT_TIMEOUT = 300  # 5 minutes
     CACHE_REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/1') # ใช้ DB คนละตัวกับ Celery
-    
+
     # Application settings
     REGISTRATION_COOLDOWN = 5  # seconds between registrations from same IP
     MAX_REGISTRATIONS_PER_IP = 50  # maximum registrations from single IP per day
+
+    # SQLAlchemy configuration with connection pool
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': 10,
+        'pool_recycle': 3600,  # Recycle connections after 1 hour
+        'pool_pre_ping': True,  # Test connections before using
+        'pool_timeout': 30,
+        'max_overflow': 20,
+        'echo_pool': True,  # Debug pool (set False in production)
+        'connect_args': {
+            'connect_timeout': 10,
+            'options': '-c statement_timeout=30000'  # 30 seconds timeout
+        }
+    }
+    
+    # Add retry configuration
+    DATABASE_RETRY_COUNT = 3
+    DATABASE_RETRY_DELAY = 1  # seconds
 
 class DevelopmentConfig(Config):
     """Development configuration"""
