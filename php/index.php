@@ -22,7 +22,7 @@
                  " - " . htmlspecialchars($head["end_time"]). "</p>";
             echo "<p><strong>สถานที่:</strong> ห้องประชุม " . htmlspecialchars($head["room"]) . 
                  " ชั้น " . htmlspecialchars($head["floor"]) . 
-                 " " . htmlspecialchars($head["building"]) . "</p>";
+                 " อาคาร " . htmlspecialchars($head["building"]) . "</p>";
             echo '</div>';
         }
     } else {
