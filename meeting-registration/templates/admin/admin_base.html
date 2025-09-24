@@ -7,7 +7,7 @@
         <a class="{% if request.endpoint == 'admin.dashboard' %}active {% endif %}item" href="{{ url_for('admin.dashboard') }}">
             <i class="dashboard icon"></i> Dashboard
         </a>
-        <a class="{% if request.endpoint == 'admin.meetings' or request.endpoint == 'admin.create_meeting' %}active {% endif %}item" href="{{ url_for('admin.meetings') }}">
+        <a class="{% if request.endpoint == 'admin.meetings' or request.endpoint == 'admin.create_meeting' or request.endpoint == 'admin.edit_meeting' %}active {% endif %}item" href="{{ url_for('admin.meetings') }}">
             <i class="calendar icon"></i> การประชุม
         </a>
         <a class="{% if request.endpoint == 'admin.employees' %}active {% endif %}item" href="{{ url_for('admin.employees') }}">
@@ -28,4 +28,24 @@
     <!-- Content Area -->
     {% block admin_content %}{% endblock %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script>
+$(document).ready(function() {
+    // Initialize Semantic UI components
+    $('.ui.dropdown').dropdown();
+    $('.ui.checkbox').checkbox();
+    $('.ui.accordion').accordion();
+    $('.ui.popup').popup();
+    $('.ui.tab').tab();
+    
+    // Initialize modals - ต้องทำก่อนที่จะใช้งาน
+    $('.ui.modal').modal();
+});
+</script>
+
+<!-- Admin specific scripts -->
+{% block admin_scripts %}{% endblock %}
 {% endblock %}

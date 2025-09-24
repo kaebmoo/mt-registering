@@ -5,8 +5,6 @@
 
 {% block admin_content %}
 
-
-
     <h1 class="ui header">
         <i class="calendar icon"></i>
         <div class="content">
@@ -43,7 +41,7 @@
                 <td>{{ meeting.topic }}</td>
                 <td>{{ meeting.meeting_date.strftime('%d/%m/%Y') }}</td>
                 <td>{{ meeting.start_time.strftime('%H:%M') }} - {{ meeting.end_time.strftime('%H:%M') }}</td>
-                <td>ห้อง {{ meeting.room }} ชั้น {{ meeting.floor }} {{ meeting.building }}</td>
+                <td>ห้อง {{ meeting.room }} ชั้น {{ meeting.floor }} อาคาร {{ meeting.building }}</td>
                 <td>
                     {% if meeting.is_active %}
                         <div class="ui green label">เปิดลงทะเบียน</div>
@@ -52,16 +50,30 @@
                     {% endif %}
                 </td>
                 <td>
-                    <a href="{{ url_for('admin.view_registrations', meeting_id=meeting.id) }}" class="ui small button">
-                        <i class="list icon"></i> ดูผู้ลงทะเบียน
-                    </a>
-                    <a href="{{ url_for('admin.toggle_meeting', meeting_id=meeting.id) }}" class="ui small button">
-                        {% if meeting.is_active %}
-                            <i class="lock icon"></i> ปิด
-                        {% else %}
-                            <i class="unlock icon"></i> เปิด
-                        {% endif %}
-                    </a>
+                    <div class="ui small buttons">
+                        <a href="{{ url_for('admin.view_registrations', meeting_id=meeting.id) }}" 
+                           class="ui button" title="ดูผู้ลงทะเบียน">
+                            <i class="list icon"></i>
+                        </a>
+                        <a href="{{ url_for('admin.edit_meeting', meeting_id=meeting.id) }}" 
+                           class="ui blue button" title="แก้ไข">
+                            <i class="edit icon"></i>
+                        </a>
+                        <a href="{{ url_for('admin.toggle_meeting', meeting_id=meeting.id) }}" 
+                           class="ui button" title="{% if meeting.is_active %}ปิด{% else %}เปิด{% endif %}">
+                            {% if meeting.is_active %}
+                                <i class="lock icon"></i>
+                            {% else %}
+                                <i class="unlock icon"></i>
+                            {% endif %}
+                        </a>
+                        <button class="ui red button delete-meeting" 
+                                data-meeting-id="{{ meeting.id }}"
+                                data-meeting-topic="{{ meeting.topic }}"
+                                title="ลบ">
+                            <i class="trash icon"></i>
+                        </button>
+                    </div>
                 </td>
             </tr>
             {% else %}
@@ -71,7 +83,103 @@
             {% endfor %}
         </tbody>
     </table>
+    
     <!-- Pagination -->
     {{ pagination_macros.render_pagination(meetings, 'admin.meetings') }}
 
+    <!-- Delete Confirmation Modal -->
+    <div class="ui small modal" id="deleteModal">
+        <div class="header">ยืนยันการลบการประชุม</div>
+        <div class="content" id="modalContent">
+            <p>คุณต้องการลบการประชุม "<span id="meetingTopic"></span>" หรือไม่?</p>
+            <div class="ui warning message">
+                <i class="warning icon"></i>
+                การลบจะไม่สามารถยกเลิกได้ และจะลบได้เฉพาะการประชุมที่ยังไม่มีผู้ลงทะเบียนเท่านั้น
+            </div>
+        </div>
+        <div class="actions">
+            <div class="ui black deny button">
+                <i class="remove icon"></i>
+                ยกเลิก
+            </div>
+            <div class="ui red approve button" id="confirmDeleteBtn">
+                <i class="trash icon"></i>
+                ลบการประชุม
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block admin_scripts %}
+<script>
+$(document).ready(function() {
+    // Handle delete button click
+    $('.delete-meeting').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        var meetingId = $(this).data('meeting-id');
+        var meetingTopic = $(this).data('meeting-topic');
+        
+        // Set modal content
+        $('#meetingTopic').text(meetingTopic);
+        
+        // Configure and show modal
+        $('#deleteModal')
+            .modal({
+                closable: false,
+                onDeny: function() {
+                    // Just close modal
+                    return true;
+                },
+                onApprove: function() {
+                    // Show loading
+                    $('#confirmDeleteBtn').addClass('loading disabled');
+                    
+                    // Submit delete request via AJAX
+                    $.ajax({
+                        type: 'POST',
+                        url: '/admin/meetings/' + meetingId + '/delete',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        success: function(response) {
+                            // Reload page on success
+                            window.location.reload();
+                        },
+                        error: function(xhr) {
+                            // Remove loading
+                            $('#confirmDeleteBtn').removeClass('loading disabled');
+                            
+                            // Show error message
+                            var errorMsg = 'เกิดข้อผิดพลาด';
+                            
+                            if (xhr.responseJSON && xhr.responseJSON.error) {
+                                errorMsg = xhr.responseJSON.error;
+                            } else if (xhr.status === 400) {
+                                errorMsg = 'ไม่สามารถลบได้ เนื่องจากมีผู้ลงทะเบียนแล้ว';
+                            }
+                            
+                            // Update modal content
+                            $('#modalContent').html(
+                                '<div class="ui negative message">' +
+                                '<div class="header">ไม่สามารถลบได้</div>' +
+                                '<p>' + errorMsg + '</p>' +
+                                '</div>'
+                            );
+                            
+                            // Hide approve button and change deny button text
+                            $('#confirmDeleteBtn').hide();
+                            $('.deny.button').text('ปิด');
+                        }
+                    });
+                    
+                    return false; // Keep modal open
+                }
+            })
+            .modal('show');
+    });
+});
+</script>
 {% endblock %}

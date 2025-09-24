@@ -1,0 +1,77 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}แก้ไขการประชุม{% endblock %}
+{% block admin_content %}
+
+    <h1 class="ui header">
+        <i class="edit icon"></i>
+        <div class="content">
+            แก้ไขการประชุม
+            <div class="sub header">แก้ไขข้อมูลการประชุม ID: {{ meeting.id }}</div>
+        </div>
+    </h1>
+
+    <form class="ui form" method="POST">
+        <div class="field">
+            <label>หัวข้อการประชุม</label>
+            <input type="text" name="topic" value="{{ meeting.topic }}" required>
+        </div>
+        
+        <div class="three fields">
+            <div class="field">
+                <label>วันที่</label>
+                <input type="date" name="meeting_date" value="{{ meeting.meeting_date.strftime('%Y-%m-%d') }}" required>
+            </div>
+            <div class="field">
+                <label>เวลาเริ่ม</label>
+                <input type="time" name="start_time" value="{{ meeting.start_time.strftime('%H:%M') }}" required>
+            </div>
+            <div class="field">
+                <label>เวลาสิ้นสุด</label>
+                <input type="time" name="end_time" value="{{ meeting.end_time.strftime('%H:%M') }}" required>
+            </div>
+        </div>
+        
+        <div class="three fields">
+            <div class="field">
+                <label>ห้องประชุม</label>
+                <input type="text" name="room" value="{{ meeting.room }}" required>
+            </div>
+            <div class="field">
+                <label>ชั้น</label>
+                <input type="text" name="floor" value="{{ meeting.floor }}" required>
+            </div>
+            <div class="field">
+                <label>อาคาร</label>
+                <input type="text" name="building" value="{{ meeting.building }}" required>
+            </div>
+        </div>
+        
+        <div class="field">
+            <label>สถานะการประชุม</label>
+            <div class="ui segment">
+                <div class="ui toggle checkbox">
+                    <input type="checkbox" disabled {% if meeting.is_active %}checked{% endif %}>
+                    <label>
+                        {% if meeting.is_active %}
+                            <span class="ui green text">กำลังเปิดลงทะเบียน</span>
+                        {% else %}
+                            <span class="ui grey text">ปิดการลงทะเบียน</span>
+                        {% endif %}
+                    </label>
+                </div>
+                <div class="ui info message">
+                    <p>หากต้องการเปลี่ยนสถานะ กรุณาใช้ปุ่ม เปิด/ปิด ในหน้ารายการประชุม</p>
+                </div>
+            </div>
+        </div>
+        
+        <button class="ui primary button" type="submit">
+            <i class="save icon"></i> บันทึกการเปลี่ยนแปลง
+        </button>
+        <a href="{{ url_for('admin.meetings') }}" class="ui button">
+            <i class="cancel icon"></i> ยกเลิก
+        </a>
+    </form>
+
+{% endblock %}

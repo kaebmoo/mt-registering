@@ -1,3 +1,4 @@
+# meeting-registration/admin.py
 import os
 from datetime import datetime, timedelta
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
@@ -158,6 +159,75 @@ def create_meeting():
             flash(f'เกิดข้อผิดพลาด: {str(e)}', 'error')
     
     return render_template('admin/create_meeting.html')
+
+@admin_bp.route('/meetings/<int:meeting_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_meeting(meeting_id):
+    """Edit existing meeting"""
+    meeting = Meeting.query.get_or_404(meeting_id)
+    
+    if request.method == 'POST':
+        try:
+            # Update meeting details
+            meeting.topic = request.form.get('topic')
+            meeting.meeting_date = datetime.strptime(request.form.get('meeting_date'), '%Y-%m-%d').date()
+            meeting.start_time = datetime.strptime(request.form.get('start_time'), '%H:%M').time()
+            meeting.end_time = datetime.strptime(request.form.get('end_time'), '%H:%M').time()
+            meeting.room = request.form.get('room')
+            meeting.floor = request.form.get('floor')
+            meeting.building = request.form.get('building')
+            
+            db.session.commit()
+            cache.delete('active_meeting')
+            
+            flash('แก้ไขข้อมูลการประชุมสำเร็จ', 'success')
+            return redirect(url_for('admin.meetings'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'เกิดข้อผิดพลาด: {str(e)}', 'error')
+    
+    return render_template('admin/edit_meeting.html', meeting=meeting)
+
+@admin_bp.route('/meetings/<int:meeting_id>/delete', methods=['POST'])
+@login_required
+def delete_meeting(meeting_id):
+    """Delete a meeting"""
+    meeting = Meeting.query.get_or_404(meeting_id)
+    
+    # Check if meeting has registrations
+    registration_count = Registration.query.filter_by(meeting_id=meeting_id).count()
+    
+    if registration_count > 0:
+        # For AJAX request
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                'error': f'ไม่สามารถลบการประชุมได้ เนื่องจากมีผู้ลงทะเบียนแล้ว {registration_count} คน'
+            }), 400
+        
+        flash(f'ไม่สามารถลบการประชุมได้ เนื่องจากมีผู้ลงทะเบียนแล้ว {registration_count} คน', 'error')
+        return redirect(url_for('admin.meetings'))
+    
+    try:
+        db.session.delete(meeting)
+        db.session.commit()
+        cache.delete('active_meeting')
+        
+        # For AJAX request
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': True}), 200
+            
+        flash('ลบการประชุมสำเร็จ', 'success')
+    except Exception as e:
+        db.session.rollback()
+        
+        # For AJAX request
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'error': str(e)}), 500
+            
+        flash(f'เกิดข้อผิดพลาดในการลบ: {str(e)}', 'error')
+    
+    return redirect(url_for('admin.meetings'))
 
 @admin_bp.route('/meetings/<int:meeting_id>/toggle')
 @login_required
