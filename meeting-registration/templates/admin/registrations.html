@@ -78,7 +78,7 @@
                 <td>{{ reg.position or '-' }}</td>
                 <td>{{ reg.sec_short or '-' }}</td>
                 <td>{{ reg.cc_name or '-' }}</td>
-                <td>{{ reg.registration_time.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+                <td>{{ reg.registration_time|datetime_thai }}</td>
                 <td>
                     {% if reg.is_manual_entry %}
                         <div class="ui yellow label">กรอกเอง</div>

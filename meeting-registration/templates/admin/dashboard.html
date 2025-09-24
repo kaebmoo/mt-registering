@@ -98,7 +98,7 @@
             <tbody>
                 {% for reg in recent_registrations %}
                 <tr>
-                    <td>{{ reg.registration_time.strftime('%H:%M:%S') }}</td>
+                    <td>{{ reg.registration_time|time_thai }}</td>
                     <td>{{ reg.emp_id or '-' }}</td>
                     <td>{{ reg.emp_name }}</td>
                     <td>{{ reg.cc_name or '-' }}</td>

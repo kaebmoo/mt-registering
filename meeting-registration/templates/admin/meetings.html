@@ -68,9 +68,10 @@
                             {% endif %}
                         </a>
                         <button class="ui red button delete-meeting" 
-                                data-meeting-id="{{ meeting.id }}"
-                                data-meeting-topic="{{ meeting.topic }}"
-                                title="ลบ">
+                            data-meeting-id="{{ meeting.id }}"
+                            data-meeting-topic="{{ meeting.topic }}"
+                            data-delete-url="{{ url_for('admin.delete_meeting', meeting_id=meeting.id) }}"
+                            title="ลบ">
                             <i class="trash icon"></i>
                         </button>
                     </div>
@@ -119,11 +120,26 @@ $(document).ready(function() {
         e.preventDefault();
         e.stopPropagation();
         
-        var meetingId = $(this).data('meeting-id');
-        var meetingTopic = $(this).data('meeting-topic');
+        var $button = $(this);  // เก็บ reference ของปุ่มที่คลิก
+        var meetingId = $button.data('meeting-id');
+        var meetingTopic = $button.data('meeting-topic');
+        var deleteUrl = $button.data('delete-url');  // ดึง URL จาก data attribute
+        
+        console.log('Delete URL:', deleteUrl);  // Debug log
         
         // Set modal content
         $('#meetingTopic').text(meetingTopic);
+        
+        // Reset modal content
+        $('#modalContent').html(
+            '<p>คุณต้องการลบการประชุม "<span id="meetingTopic">' + meetingTopic + '</span>" หรือไม่?</p>' +
+            '<div class="ui warning message">' +
+            '<i class="warning icon"></i>' +
+            'การลบจะไม่สามารถยกเลิกได้ และจะลบได้เฉพาะการประชุมที่ยังไม่มีผู้ลงทะเบียนเท่านั้น' +
+            '</div>'
+        );
+        $('#confirmDeleteBtn').show();
+        $('.deny.button').text('ยกเลิก');
         
         // Configure and show modal
         $('#deleteModal')
@@ -140,15 +156,18 @@ $(document).ready(function() {
                     // Submit delete request via AJAX
                     $.ajax({
                         type: 'POST',
-                        url: '/admin/meetings/' + meetingId + '/delete',
+                        url: deleteUrl,  // ใช้ deleteUrl ที่ดึงมาจาก data attribute
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest'
                         },
                         success: function(response) {
+                            console.log('Delete success:', response);  // Debug log
                             // Reload page on success
                             window.location.reload();
                         },
                         error: function(xhr) {
+                            console.error('Delete error:', xhr);  // Debug log
+                            
                             // Remove loading
                             $('#confirmDeleteBtn').removeClass('loading disabled');
                             
@@ -159,6 +178,10 @@ $(document).ready(function() {
                                 errorMsg = xhr.responseJSON.error;
                             } else if (xhr.status === 400) {
                                 errorMsg = 'ไม่สามารถลบได้ เนื่องจากมีผู้ลงทะเบียนแล้ว';
+                            } else if (xhr.status === 404) {
+                                errorMsg = 'ไม่พบการประชุมที่ต้องการลบ';
+                            } else if (xhr.status === 500) {
+                                errorMsg = 'เกิดข้อผิดพลาดจาก Server';
                             }
                             
                             // Update modal content

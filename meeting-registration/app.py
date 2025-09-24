@@ -8,6 +8,7 @@ import json
 from flask_caching import Cache
 import requests
 import logging
+import pytz
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_migrate import Migrate
@@ -25,6 +26,8 @@ from config import config
 from models import db, Employee, Meeting, Registration
 from admin import admin_bp
 from extensions import cache, celery_app
+from timezone_utils import convert_to_timezone, format_datetime_thai, format_time_thai, format_date_thai
+
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -50,6 +53,7 @@ def create_app(config_name=None):
         app.config['SECRET_KEY'] = 'dev-secret-key-change-in-production'
     
     print(f"SECRET_KEY is set: {bool(app.config.get('SECRET_KEY'))}")
+    print(f"Environment: {config_name}")
     
     # Initialize extensions
     db.init_app(app)
@@ -69,6 +73,48 @@ def create_app(config_name=None):
 
     # Setup ProxyFix for proper IP address detection behind proxy
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+    
+    # Handle URL prefix configuration from environment variables
+    app_root = os.environ.get('APPLICATION_ROOT', '')
+    preferred_scheme = os.environ.get('PREFERRED_URL_SCHEME', '')
+    
+    if app_root:
+        print(f"Setting APPLICATION_ROOT to: {app_root}")
+        app.config['APPLICATION_ROOT'] = app_root
+        
+        # Custom middleware to handle SCRIPT_NAME
+        class PrefixMiddleware:
+            def __init__(self, app, prefix=''):
+                self.app = app
+                self.prefix = prefix
+
+            def __call__(self, environ, start_response):
+                # Log the incoming request for debugging (only in debug mode)
+                if app.config.get('DEBUG'):
+                    logger.info(f"Incoming PATH_INFO: {environ.get('PATH_INFO')}")
+                    logger.info(f"Incoming SCRIPT_NAME: {environ.get('SCRIPT_NAME')}")
+                
+                # Set SCRIPT_NAME if not already set
+                if self.prefix and not environ.get('SCRIPT_NAME'):
+                    environ['SCRIPT_NAME'] = self.prefix
+                    
+                # Fix PATH_INFO if it starts with the prefix
+                path = environ.get('PATH_INFO', '')
+                if path.startswith(self.prefix):
+                    environ['PATH_INFO'] = path[len(self.prefix):]
+                    environ['SCRIPT_NAME'] = self.prefix
+                    if app.config.get('DEBUG'):
+                        logger.info(f"Fixed PATH_INFO: {environ.get('PATH_INFO')}")
+                        logger.info(f"Fixed SCRIPT_NAME: {environ.get('SCRIPT_NAME')}")
+                    
+                return self.app(environ, start_response)
+        
+        # Apply the prefix middleware
+        app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=app_root)
+    
+    if preferred_scheme:
+        print(f"Setting PREFERRED_URL_SCHEME to: {preferred_scheme}")
+        app.config['PREFERRED_URL_SCHEME'] = preferred_scheme
     
     # Initialize rate limiter
     limiter = Limiter(
@@ -104,6 +150,40 @@ def create_app(config_name=None):
         """Set session lifetime and check for session validity"""
         session.permanent = True
         app.permanent_session_lifetime = timedelta(hours=1)
+
+    # Register template filters for timezone conversion
+    @app.template_filter('to_timezone')
+    def to_timezone_filter(dt, timezone=None):
+        """Convert datetime to specified timezone"""
+        if timezone is None:
+            timezone = app.config.get('DISPLAY_TIMEZONE', 'Asia/Bangkok')
+        return convert_to_timezone(dt, timezone)
+    
+    @app.template_filter('datetime_thai')
+    def datetime_thai_filter(dt, format='%d/%m/%Y %H:%M:%S'):
+        """Format datetime in Thai timezone"""
+        timezone = app.config.get('DISPLAY_TIMEZONE', 'Asia/Bangkok')
+        return format_datetime_thai(dt, timezone, format)
+    
+    @app.template_filter('time_thai')
+    def time_thai_filter(dt):
+        """Format time only in Thai timezone"""
+        timezone = app.config.get('DISPLAY_TIMEZONE', 'Asia/Bangkok')
+        return format_time_thai(dt, timezone)
+    
+    @app.template_filter('date_thai')
+    def date_thai_filter(dt):
+        """Format date only in Thai timezone"""
+        timezone = app.config.get('DISPLAY_TIMEZONE', 'Asia/Bangkok')
+        return format_date_thai(dt, timezone)
+    
+    # Context processor to inject timezone info
+    @app.context_processor
+    def inject_timezone():
+        return {
+            'timezone': app.config.get('DISPLAY_TIMEZONE', 'Asia/Bangkok'),
+            'current_time_local': datetime.now(pytz.timezone(app.config.get('DISPLAY_TIMEZONE', 'Asia/Bangkok')))
+        }
     
     @app.route('/')
     def index():
@@ -113,7 +193,7 @@ def create_app(config_name=None):
             flash('ไม่มีการประชุมที่เปิดให้ลงทะเบียน', 'warning')
         return render_template('index.html', meeting=meeting)
     
-    @app.route('/register', methods=['POST'])
+    @app.route('/submit', methods=['POST'])
     @limiter.limit("10 per minute")  # Rate limit to prevent spam
     def register():
         """Handle registration submission"""
@@ -174,7 +254,6 @@ def create_app(config_name=None):
                 session[last_registration_key] = datetime.now().isoformat()
                 
                 # Send to Google Sheets (async)
-                # Send to Google Sheets (async)
                 try:
                     # Create a dictionary of data for the task
                     reg_data_for_task = {
@@ -215,7 +294,7 @@ def create_app(config_name=None):
                                  emp_id=emp_id,
                                  meeting=meeting)
     
-    @app.route('/register_manual', methods=['POST'])
+    @app.route('/submit_manual', methods=['POST'])
     @limiter.limit("5 per minute")
     def register_manual():
         """Handle manual registration submission"""
@@ -266,7 +345,6 @@ def create_app(config_name=None):
             db.session.add(registration)
             db.session.commit()
             
-            # Send to Google Sheets
             # Send to Google Sheets (async)
             try:
                 reg_data_for_task = {

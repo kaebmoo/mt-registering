@@ -1,6 +1,7 @@
 # meeting-registration/config.py
 import os
 from datetime import timedelta
+import pytz
 
 # Load .env file at the beginning of config.py
 from dotenv import load_dotenv
@@ -75,6 +76,14 @@ class Config:
     # Logging configuration
     LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
     LOG_DATABASE_QUERIES = os.environ.get('LOG_DATABASE_QUERIES', 'false').lower() == 'true'
+
+    # Timezone configuration
+    TIMEZONE = os.environ.get('TIMEZONE', 'Asia/Bangkok')
+    TZ = pytz.timezone(TIMEZONE)
+    
+    # Display timezone in templates
+    DISPLAY_TIMEZONE = os.environ.get('DISPLAY_TIMEZONE', 'Asia/Bangkok')
+    DISPLAY_TZ = pytz.timezone(DISPLAY_TIMEZONE)
 
 class DevelopmentConfig(Config):
     """Development configuration"""
