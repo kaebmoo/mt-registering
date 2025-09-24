@@ -182,7 +182,8 @@ def create_app(config_name=None):
     def inject_timezone():
         return {
             'timezone': app.config.get('DISPLAY_TIMEZONE', 'Asia/Bangkok'),
-            'current_time_local': datetime.now(pytz.timezone(app.config.get('DISPLAY_TIMEZONE', 'Asia/Bangkok')))
+            'current_time_local': datetime.now(pytz.timezone(app.config.get('DISPLAY_TIMEZONE', 'Asia/Bangkok'))),
+            'datetime': datetime
         }
     
     @app.route('/')
@@ -212,7 +213,10 @@ def create_app(config_name=None):
         if not meeting:
             flash('ไม่มีการประชุมที่เปิดให้ลงทะเบียน', 'error')
             return redirect(url_for('index'))
-        
+        # บังคับให้ SQLAlchemy โหลดสถานะล่าสุดของ meeting object จาก DB
+        # เพื่อล้างสถานะเก่าที่อาจค้างมาจาก Cache หรือ Session ก่อนหน้า
+        # meeting = db.session.merge(cached_meeting)
+
         # Check for cooldown period (prevent rapid submissions)
         last_registration_key = f"last_reg_{get_remote_address()}"
         if last_registration_key in session:
@@ -303,6 +307,14 @@ def create_app(config_name=None):
             flash('ไม่มีการประชุมที่เปิดให้ลงทะเบียน', 'error')
             return redirect(url_for('index'))
         
+        # ใช้ session.merge() เพื่อนำ object จาก cache กลับเข้าสู่ session ปัจจุบัน
+        # ทำให้เราได้ object ตัวจริงที่ session กำลังดูแลอยู่
+        # cached_meeting = Meeting.get_active_meeting()
+        # if not cached_meeting:
+        #     flash('ไม่มีการประชุมที่เปิดให้ลงทะเบียน', 'error')
+        #     return redirect(url_for('index'))
+        # meeting = db.session.merge(cached_meeting)
+
         # Get form data
         new_emp_id = request.form.get('new_emp_id', '').strip()
         new_emp_name = request.form.get('new_emp_name', '').strip()

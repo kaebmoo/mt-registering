@@ -196,7 +196,8 @@ def delete_meeting(meeting_id):
     meeting = Meeting.query.get_or_404(meeting_id)
     
     # Check if meeting has registrations
-    registration_count = Registration.query.filter_by(meeting_id=meeting_id).count()
+    # ตรวจสอบโดยตรงจาก database ไม่ใช้ cache
+    registration_count = db.session.query(Registration).filter_by(meeting_id=meeting_id).count()
     
     if registration_count > 0:
         # For AJAX request
@@ -354,6 +355,8 @@ def delete_registration(registration_id):
         db.session.commit()
         # Clear cache ถ้ามี
         cache.delete('active_meeting')
+        
+
         flash(f'ลบการลงทะเบียนของ {emp_name} เรียบร้อยแล้ว', 'success')
     except Exception as e:
         db.session.rollback()
@@ -377,6 +380,8 @@ def delete_multiple_registrations():
     try:
         Registration.query.filter(Registration.id.in_(registration_ids)).delete(synchronize_session=False)
         db.session.commit()
+        # Clear ALL cache
+        cache.delete('active_meeting')
         flash(f'ลบ {len(registration_ids)} รายการเรียบร้อยแล้ว', 'success')
     except Exception as e:
         db.session.rollback()
@@ -398,6 +403,8 @@ def delete_all_registrations(meeting_id):
         count = Registration.query.filter_by(meeting_id=meeting_id).count()
         Registration.query.filter_by(meeting_id=meeting_id).delete()
         db.session.commit()
+        # Clear ALL cache
+        cache.delete('active_meeting')
         flash(f'ลบการลงทะเบียนทั้งหมด {count} รายการเรียบร้อยแล้ว', 'success')
     except Exception as e:
         db.session.rollback()
