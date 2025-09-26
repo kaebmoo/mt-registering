@@ -92,6 +92,9 @@ class Config:
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_FROM = os.environ.get('MAIL_FROM', 'noreply@example.com')
+    MAIL_FROM_NAME = os.environ.get('MAIL_FROM_NAME', 'Meeting Registration System')
+    
+
 
     # Allowed email domains (comma separated)
     ALLOWED_EMAIL_DOMAINS = os.environ.get('ALLOWED_EMAIL_DOMAINS', '')  # เช่น 'company.com,organization.org'
