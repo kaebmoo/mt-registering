@@ -294,18 +294,28 @@ def create_app(config_name=None):
                 flash('กรุณารอสักครู่ก่อนลงทะเบียนใหม่', 'warning')
                 return redirect(url_for('index'))
         
+        # ขั้นตอนที่ 1: ตรวจสอบการลงทะเบียนซ้ำก่อนเป็นอันดับแรกเสมอ
+        if Registration.check_duplicate(meeting.id, emp_id):
+            flash('รหัสพนักงานนี้ได้ลงทะเบียนในการประชุมนี้แล้ว', 'info')
+            
+            # ดึงข้อมูลการลงทะเบียนเก่ามาแสดงผล เพื่อให้ผู้ใช้เห็นข้อมูลของตัวเอง
+            existing_registration = Registration.query.filter_by(meeting_id=meeting.id, emp_id=emp_id).first()
+            
+            return render_template('registration_success.html', 
+                                    registration_data={
+                                        'emp_id': existing_registration.emp_id,
+                                        'emp_name': existing_registration.emp_name,
+                                        'position': existing_registration.position,
+                                        'sec_short': existing_registration.sec_short,
+                                        'cc_name': existing_registration.cc_name
+                                    },
+                                    meeting=meeting,
+                                    already_registered=True)
+    
         # Search for employee
         employee = Employee.search_by_id(emp_id)
         
-        if employee:
-            # Check for duplicate registration
-            if Registration.check_duplicate(meeting.id, employee.emp_id):
-                flash('คุณได้ลงทะเบียนในการประชุมนี้แล้ว', 'info')
-                return render_template('registration_success.html', 
-                                    registration_data=employee.to_dict(),
-                                    meeting=meeting,
-                                    already_registered=True)
-            
+        if employee:            
             try:
                 # Create registration
                 registration = Registration(
