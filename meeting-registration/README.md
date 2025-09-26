@@ -1,87 +1,174 @@
 # ระบบลงทะเบียนการประชุม (Meeting Registration System)
 
-ระบบลงทะเบียนการประชุมที่พัฒนาด้วย Flask และ PostgreSQL แทนระบบ PHP เดิม เพื่อเพิ่มประสิทธิภาพและป้องกันการลงทะเบียนซ้ำ
+ระบบลงทะเบียนการประชุมที่พัฒนาด้วย Flask และ PostgreSQL แทนระบบ PHP เดิม เพื่อเพิ่มประสิทธิภาพและป้องกันการลงทะเบียนซ้ำ พร้อมระบบ Multi-role Authentication สำหรับ Admin และ Organizers
 
-## คุณสมบัติหลัก
+## 🌟 คุณสมบัติหลัก
 
+### สำหรับผู้ลงทะเบียน
 - ✅ ลงทะเบียนด้วยรหัสพนักงาน พร้อมระบบค้นหาอัตโนมัติ
+- ✅ รองรับการลงทะเบียนหลายการประชุมพร้อมกัน
 - ✅ ป้องกันการลงทะเบียนซ้ำด้วย Database Constraint
+- ✅ รองรับการกรอกข้อมูลด้วยตนเองกรณีไม่พบในระบบ
+- ✅ แสดงสถานะการลงทะเบียนทันที
+
+### สำหรับผู้จัดการประชุม (Organizers)
+- ✅ ระบบ Email OTP Authentication
+- ✅ สร้างและจัดการการประชุมของตนเอง
+- ✅ ดูรายชื่อผู้ลงทะเบียนในการประชุมที่จัด
+- ✅ Export ข้อมูลเป็น CSV
+- ✅ กำหนดการประชุมเป็น Public/Private
+
+### สำหรับผู้ดูแลระบบ (Admin)
+- ✅ Admin Dashboard สำหรับจัดการและดูสถิติ
+- ✅ จัดการการประชุมทั้งหมดในระบบ
+- ✅ ดูสถิติการลงทะเบียนแบบ Real-time
+- ✅ จัดการข้อมูลพนักงาน
+- ✅ ลบการลงทะเบียนแบบเดี่ยวหรือหลายรายการ
+
+### ระบบสนับสนุน
 - ✅ Rate Limiting ป้องกันการส่งฟอร์มซ้ำเร็วเกินไป
 - ✅ ระบบแคชข้อมูลพนักงานด้วย Redis
-- ✅ Admin Dashboard สำหรับจัดการและดูสถิติ
-- ✅ Export ข้อมูลเป็น CSV
-- ✅ ส่งข้อมูลไป Google Sheets อัตโนมัติ
-- ✅ รองรับการกรอกข้อมูลด้วยตนเองกรณีไม่พบในระบบ
+- ✅ ส่งข้อมูลไป Google Sheets อัตโนมัติผ่าน Celery
+- ✅ ส่ง Email OTP ผ่าน RQ Worker
+- ✅ รองรับ Timezone (Asia/Bangkok)
 
-## การปรับปรุงจากระบบเดิม
+## 📊 การปรับปรุงจากระบบเดิม
 
 1. **Performance**: ใช้ PostgreSQL แทนการอ่านไฟล์ CSV ทำให้เร็วขึ้นมาก
 2. **Reliability**: ป้องกันการลงทะเบียนซ้ำด้วย Database Constraint
 3. **Scalability**: รองรับผู้ใช้งานพร้อมกันจำนวนมาก
-4. **Security**: มีระบบ Rate Limiting และ Session Management
-5. **Management**: มี Admin Dashboard สำหรับจัดการ
+4. **Security**: มีระบบ Rate Limiting, Session Management และ Email OTP
+5. **Management**: มี Admin Dashboard และ Organizer Dashboard
+6. **Multi-tenancy**: รองรับการจัดการประชุมหลายงานโดยผู้จัดต่างคน
 
-## Requirements
+## 🔧 Requirements
 
+### Core Requirements
 - Python 3.11+
 - PostgreSQL 15+
-- Redis (สำหรับ Rate Limiting)
-- Docker & Docker Compose (optional)
+- Redis (สำหรับ Cache และ Queue)
 
-## การติดตั้งแบบ Docker (แนะนำ)
+### Optional (for production)
+- Nginx (Reverse Proxy)
+- PM2 (Process Manager)
+- Docker & Docker Compose
 
-1. Clone repository:
+## 📁 โครงสร้างไฟล์
+
+```
+meeting-registration/
+├── app.py                 # Main Flask application พร้อม factory pattern
+├── models.py             # Database models (Employee, User, Meeting, Registration, OTPToken)
+├── config.py             # Configuration classes สำหรับ environments ต่างๆ
+├── requirements.txt      # Python dependencies
+├── database_schema.sql   # PostgreSQL schema พร้อม tables ทั้งหมด
+├── README.md            # Documentation
+├── import_data.py       # Script สำหรับ import ข้อมูล
+├── extensions.py        # Flask extensions (cache, celery)
+│
+├── 📧 Email & Background Tasks
+│   ├── email_service.py      # Email service class สำหรับส่ง OTP
+│   ├── tasks.py              # Background tasks definitions (RQ)
+│   ├── celery_worker.py      # Celery worker for Google Sheets
+│   └── rq_worker.py          # RQ worker for email OTP
+│
+├── 🔐 Authentication & Authorization
+│   ├── auth.py               # Authentication blueprint (login/register with OTP)
+│   ├── admin.py              # Admin blueprint และ dashboard
+│   └── organizer.py          # Organizer blueprint สำหรับผู้จัดการประชุม
+│
+├── 🛠️ Utilities
+│   ├── timezone_utils.py     # Timezone conversion helpers
+│   └── meeting_utils.py      # Meeting-related utility functions
+│
+├── 🐳 Deployment & Configuration
+│   ├── docker-compose.yml    # Docker compose configuration
+│   ├── Dockerfile           # Docker image definition
+│   ├── ecosystem.config.js   # PM2 configuration (3 processes)
+│   ├── .env.example         # Environment variables template
+│   ├── env.development      # Development environment config
+│   └── env.production       # Production environment config
+│
+├── 📂 templates/             # Jinja2 HTML templates
+│   ├── base.html            # Base template พร้อม navigation
+│   ├── index.html           # หน้าลงทะเบียน (single meeting)
+│   ├── index_multi.html     # หน้าเลือกการประชุม (multiple meetings)
+│   ├── manual_registration.html  # ฟอร์มกรอกข้อมูลเอง
+│   ├── registration_success.html # หน้าแสดงผลสำเร็จ
+│   ├── 404.html            # Error page - Not Found
+│   ├── 500.html            # Error page - Server Error
+│   │
+│   ├── 📁 admin/           # Admin templates
+│   │   ├── admin_base.html     # Base template สำหรับ admin
+│   │   ├── login.html          # Admin login page
+│   │   ├── dashboard.html      # Admin dashboard พร้อมสถิติ
+│   │   ├── meetings.html       # จัดการการประชุมทั้งหมด
+│   │   ├── create_meeting.html # สร้างการประชุมใหม่
+│   │   ├── edit_meeting.html   # แก้ไขการประชุม
+│   │   ├── registrations.html  # รายชื่อผู้ลงทะเบียน
+│   │   ├── employees.html      # จัดการข้อมูลพนักงาน
+│   │   ├── statistics.html     # สถิติการลงทะเบียน
+│   │   └── components/
+│   │       └── pagination.html # Reusable pagination component
+│   │
+│   ├── 📁 auth/            # Authentication templates
+│   │   ├── login.html          # เข้าสู่ระบบด้วย email
+│   │   ├── register.html       # ลงทะเบียนผู้จัด
+│   │   └── verify_otp.html     # ยืนยัน OTP code
+│   │
+│   └── 📁 organizer/       # Organizer templates
+│       ├── dashboard.html      # Organizer dashboard
+│       ├── create_meeting.html # สร้างการประชุม
+│       ├── edit_meeting.html   # แก้ไขการประชุมของตนเอง
+│       └── registrations.html  # ดูผู้ลงทะเบียนในงานของตน
+│
+├── 📂 static/              # Static assets (ถ้ามี)
+│   ├── css/
+│   ├── js/
+│   └── images/
+│
+└── 📂 logs/               # Application logs
+    ├── app.log
+    ├── pm2-error.log
+    ├── pm2-out.log
+    ├── pm2-combined.log
+    ├── pm2-celery-error.log
+    ├── pm2-celery-out.log
+    └── pm2-rq-error.log
+```
+
+## 🚀 การติดตั้ง
+
+### วิธีที่ 1: การติดตั้งแบบ Docker (แนะนำ)
+
 ```bash
+# Clone repository
 git clone <repository-url>
 cd meeting-registration
-```
 
-2. สร้างไฟล์ `.env`:
-```bash
-# Database
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=your-secure-password
-POSTGRES_DB=meeting_registration
+# สร้างไฟล์ .env
+cp .env.example .env
+# แก้ไข .env ตามต้องการ
 
-# Application
-SECRET_KEY=your-secret-key-change-this
-FLASK_ENV=production
-
-# Admin
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=secure-admin-password
-
-# Google Sheets Integration
-GOOGLE_SCRIPT_URL=https://script.google.com/macros/s/YOUR-SCRIPT-ID/exec
-```
-
-3. รัน Docker Compose:
-```bash
+# Build and run
 docker-compose up -d
-```
 
-4. Import ข้อมูลพนักงาน:
-```bash
+# Import data
 docker-compose exec web python import_data.py --employees employee.csv
+
+# Access application at http://localhost:5000
 ```
 
-5. Import ข้อมูลการประชุม:
-```bash
-docker-compose exec web python import_data.py --meeting schedule.json
-```
+### วิธีที่ 2: การติดตั้งแบบ Manual
 
-6. เข้าใช้งาน:
-- ระบบลงทะเบียน: http://localhost:5000
-- Admin Dashboard: http://localhost:5000/admin
+#### 1. ติดตั้ง Dependencies
 
-## การติดตั้งแบบ Manual
-
-1. ติดตั้ง Dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-2. Setup PostgreSQL:
+#### 2. Setup PostgreSQL
+
 ```bash
 # สร้าง database
 createdb meeting_registration
@@ -90,263 +177,131 @@ createdb meeting_registration
 psql -d meeting_registration -f database_schema.sql
 ```
 
-3. Setup environment variables:
+#### 3. Setup Redis
+
 ```bash
-export POSTGRES_USER=postgres
-export POSTGRES_PASSWORD=yourpassword
-export POSTGRES_DB=meeting_registration
-export SECRET_KEY=your-secret-key
-export FLASK_ENV=development
+# Ubuntu/Debian
+sudo apt-get install redis-server
+sudo systemctl start redis
+sudo systemctl enable redis
+
+# macOS
+brew install redis
+brew services start redis
 ```
 
-4. รัน migrations:
+#### 4. Setup environment variables
+
+```bash
+# Development
+cp env.development .env
+
+# Production
+cp env.production .env
+
+# แก้ไขค่าใน .env ตามต้องการ
+```
+
+#### 5. Run migrations
+
 ```bash
 flask db init
 flask db migrate -m "Initial migration"
 flask db upgrade
 ```
 
-5. Import ข้อมูล:
+#### 6. Import ข้อมูล
+
 ```bash
 python import_data.py --employees employee.csv
 python import_data.py --meeting schedule.json
 ```
 
-6. รัน application:
+#### 7. Run application
+
 ```bash
+# Development
 python app.py
+
+# Production with Gunicorn
+gunicorn --bind 0.0.0.0:9000 --workers 4 --timeout 120 "app:create_app()"
 ```
 
-## โครงสร้างไฟล์
+## 🚀 Deployment with PM2
 
-```
-meeting-registration/
-├── app.py                 # Main Flask application
-├── admin.py              # Admin blueprint
-├── models.py             # Database models
-├── config.py             # Configuration
-├── import_data.py        # Data import script
-├── requirements.txt      # Python dependencies
-├── database_schema.sql   # PostgreSQL schema
-├── docker-compose.yml    # Docker configuration
-├── Dockerfile           # Docker image
-├── templates/           # HTML templates
-│   ├── base.html
-│   ├── index.html
-│   ├── manual_registration.html
-│   ├── registration_success.html
-│   └── admin/
-│       ├── login.html
-│       └── dashboard.html
-└── README.md
-```
+### สร้างไฟล์ ecosystem.config.js
 
-## การใช้งาน
-
-### สำหรับผู้ใช้ทั่วไป
-
-1. เข้าหน้าลงทะเบียน
-2. กรอกรหัสพนักงาน (ไม่ต้องใส่ 0 นำหน้า)
-3. ระบบจะค้นหาข้อมูลอัตโนมัติ
-4. หากไม่พบ สามารถกรอกข้อมูลเองได้
-5. กด "ลงทะเบียน"
-
-### สำหรับ Admin
-
-1. เข้าสู่ระบบที่ `/admin`
-2. จัดการการประชุม:
-   - สร้างการประชุมใหม่
-   - เปิด/ปิดการลงทะเบียน
-   - ดูรายชื่อผู้ลงทะเบียน
-   - Export ข้อมูลเป็น CSV
-3. ดูสถิติการลงทะเบียน
-4. จัดการข้อมูลพนักงาน
-
-## API Endpoints
-
-- `GET /` - หน้าลงทะเบียน
-- `POST /register` - ส่งข้อมูลลงทะเบียน
-- `POST /register_manual` - ลงทะเบียนแบบกรอกเอง
-- `GET /api/check_employee/<emp_id>` - ตรวจสอบข้อมูลพนักงาน
-- `GET /api/registration_status/<meeting_id>/<emp_id>` - ตรวจสอบสถานะการลงทะเบียน
-- `GET /admin` - Admin dashboard
-- `GET /admin/meetings` - จัดการการประชุม
-- `GET /admin/registrations/<meeting_id>` - ดูรายชื่อผู้ลงทะเบียน
-- `GET /admin/registrations/<meeting_id>/export` - Export CSV
-
-## การ Monitoring
-
-### ดู Logs
-```bash
-# Docker
-docker-compose logs -f web
-
-# Manual
-tail -f logs/app.log
-```
-
-### ดู Database
-```bash
-# เข้า PostgreSQL
-docker-compose exec postgres psql -U postgres -d meeting_registration
-
-# ดูจำนวนการลงทะเบียน
-SELECT COUNT(*) FROM registrations WHERE meeting_id = 1;
-
-# ดูการลงทะเบียนล่าสุด
-SELECT emp_id, emp_name, registration_time 
-FROM registrations 
-ORDER BY registration_time DESC 
-LIMIT 10;
-```
-
-## Troubleshooting
-
-### ปัญหา: ลงทะเบียนไม่ได้
-- ตรวจสอบว่ามีการประชุมที่ active อยู่
-- ตรวจสอบ rate limit (รอ 5 วินาทีระหว่างการลงทะเบียน)
-- ตรวจสอบว่าไม่ได้ลงทะเบียนซ้ำ
-
-### ปัญหา: ไม่พบข้อมูลพนักงาน
-- ตรวจสอบว่า import ข้อมูลแล้ว
-- ลองค้นหาโดยไม่ใส่ 0 นำหน้า
-- สามารถกรอกข้อมูลเองได้
-
-### ปัญหา: Admin เข้าไม่ได้
-- ตรวจสอบ username/password ใน environment variables
-- Default: admin/admin2024
-
-## Performance Tips
-
-1. **Database Indexing**: ตรวจสอบว่ามี index ที่จำเป็น
-2. **Redis Caching**: ใช้ Redis สำหรับ rate limiting
-3. **Connection Pooling**: PostgreSQL connection pool ถูกตั้งค่าอัตโนมัติ
-4. **Gunicorn Workers**: ปรับจำนวน workers ตามจำนวน CPU cores
-
-## Security Considerations
-
-1. เปลี่ยน SECRET_KEY ใน production
-2. ใช้ HTTPS ใน production
-3. เปลี่ยน admin password default
-4. จำกัด database permissions
-5. Setup firewall rules
-
-## Backup & Recovery
-
-### Backup Database
-```bash
-# Backup
-docker-compose exec postgres pg_dump -U postgres meeting_registration > backup.sql
-
-# Restore
-docker-compose exec -T postgres psql -U postgres meeting_registration < backup.sql
-```
-
-## License
-
-MIT License
-
-## Support
-
-หากพบปัญหาหรือต้องการความช่วยเหลือ กรุณาติดต่อ IT Support
-
-## SSH Tunnel
-
-```ssh -L [LOCAL_PORT]:[REMOTE_HOST]:[REMOTE_PORT] username@centraldigital.cattelecom.com -N```
-
-```
-# โดยที่:
-# LOCAL_PORT = port ที่ local machine (ตรงกับ POSTGRES_PORT ใน .env)
-# REMOTE_HOST = localhost หรือ 127.0.0.1 (database host บน server)
-# REMOTE_PORT = port ที่ PostgreSQL ฟังอยู่บน server
-```
-
-```sql
--- ดูว่ามี user อะไรบ้าง
-\du
-
--- ดูว่าใช้ database อะไร
-\l
-
--- เข้า database ที่ถูกต้อง
-\c meeting_registration;
-
--- ดูว่ามีตารางอะไรบ้าง
-\dt
-
--- Grant ALL privileges สำหรับทุกตารางที่มีอยู่
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO your_username;
-
--- Grant privileges สำหรับตารางที่จะสร้างในอนาคต
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO your_username;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO your_username;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO your_username;
-
--- หรือถ้าต้องการ grant เฉพาะตารางที่จำเป็น
-GRANT ALL PRIVILEGES ON TABLE employees TO your_username;
-GRANT ALL PRIVILEGES ON TABLE meetings TO your_username;
-GRANT ALL PRIVILEGES ON TABLE registrations TO your_username;
-
--- Grant usage on sequences (สำหรับ auto-increment IDs)
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO your_username;
-```
-
-คำสั่ง PM2 สำหรับรัน Flask App:
-
-1. สร้างไฟล์ ecosystem.config.js:
-
-```javascript 
+```javascript
 module.exports = {
-  apps: [
-    {
-      // --- Process 1: Flask/Gunicorn Web App (เหมือนเดิม) ---
-      name: 'meeting-registration',
-      script: '/usr/local/bin/gunicorn', // หรือ path ไปยัง gunicorn ใน venv ของคุณ
-      args: '--bind 0.0.0.0:9000 --workers 4 --timeout 120 "app:create_app()"',
-      cwd: '/home/your-user/meeting-registration', // << แก้ไข path นี้
-      interpreter: 'none',
-      env: {
-        FLASK_ENV: 'production',
-        PORT: 9000
-        // ใส่ .env variables อื่นๆ ที่จำเป็นที่นี่
-      },
-      error_file: './logs/pm2-app-error.log',
-      out_file: './logs/pm2-app-out.log',
-      log_file: './logs/pm2-app-combined.log',
-      time: true,
-      instances: 1,
-      autorestart: true,
-      watch: false,
-      max_memory_restart: '1G'
+  apps: [{
+    // Process 1: Main Application
+    name: 'meeting-registration',
+    script: '/home/seal/.local/bin/gunicorn',
+    args: '--bind 0.0.0.0:9000 --workers 4 --timeout 120 "app:create_app()"',
+    cwd: '/home/seal/mt-registering/meeting-registration',
+    interpreter: 'none',
+    env: {
+      FLASK_ENV: 'production',
+      PORT: 9000
     },
-    {
-      // --- Process 2: Celery Worker (ส่วนที่เพิ่มเข้ามา) ---
-      name: 'meeting-worker',
-      script: '/home/your-user/meeting-registration/venv/bin/celery', // << แก้ไข path ไปยัง celery ใน venv
-      args: '-A celery_worker.celery_app worker --loglevel=info',
-      cwd: '/home/your-user/meeting-registration', // << แก้ไข path นี้
-      interpreter: 'none',
-      env: {
-        FLASK_ENV: 'production'
-        // ใส่ .env variables อื่นๆ ที่จำเป็นที่นี่
-      },
-      error_file: './logs/pm2-worker-error.log',
-      out_file: './logs/pm2-worker-out.log',
-      log_file: './logs/pm2-worker-combined.log',
-      time: true,
-      instances: 1,
-      autorestart: true,
-      watch: false,
-      max_memory_restart: '500M' // Worker อาจใช้ memory น้อยกว่า
-    }
-  ]
+    error_file: './logs/pm2-error.log',
+    out_file: './logs/pm2-out.log',
+    log_file: './logs/pm2-combined.log',
+    time: true,
+    instances: 1,
+    autorestart: true,
+    watch: false,
+    max_memory_restart: '1G'
+  },
+  {
+    // Process 2: Celery Worker (สำหรับ Google Sheets)
+    name: 'meeting-celery-worker',
+    script: '/home/seal/.local/bin/celery',
+    args: '-A celery_worker.celery_app worker --loglevel=info',
+    cwd: '/home/seal/mt-registering/meeting-registration',
+    interpreter: 'none',
+    env: {
+      FLASK_ENV: 'production'
+    },
+    error_file: './logs/pm2-celery-error.log',
+    out_file: './logs/pm2-celery-out.log',
+    log_file: './logs/pm2-celery-combined.log',
+    time: true,
+    instances: 1,
+    autorestart: true,
+    watch: false,
+    max_memory_restart: '500M'
+  },
+  {
+    // Process 3: RQ Worker (สำหรับ Email OTP)
+    name: 'meeting-rq-worker',
+    script: '/home/seal/.local/bin/python',
+    args: 'rq_worker.py',
+    cwd: '/home/seal/mt-registering/meeting-registration',
+    interpreter: 'none',
+    env: {
+      FLASK_ENV: 'production',
+      REDIS_URL: 'redis://localhost:6379'
+    },
+    error_file: './logs/pm2-rq-error.log',
+    out_file: './logs/pm2-rq-out.log',
+    log_file: './logs/pm2-rq-combined.log',
+    time: true,
+    instances: 1,
+    autorestart: true,
+    watch: false,
+    max_memory_restart: '500M'
+  }]
 };
 ```
 
-2. คำสั่ง PM2 แบบ Command Line:
+### PM2 Commands
 
 ```bash
-# วิธีที่ 1: ใช้ Gunicorn (แนะนำสำหรับ Production)
+# Start all processes
+pm2 start ecosystem.config.js
+
+# Alternative: Start individually
 pm2 start gunicorn \
   --name "meeting-registration" \
   --interpreter none \
@@ -355,23 +310,6 @@ pm2 start gunicorn \
   --timeout 120 \
   --chdir /path/to/meeting-registration \
   "app:create_app('production')"
-
-# วิธีที่ 2: ใช้ Python โดยตรง (สำหรับ Development)
-pm2 start app.py \
-  --name "meeting-registration" \
-  --interpreter python3 \
-  --cwd /path/to/meeting-registration \
-  -- --port 9000
-
-# วิธีที่ 3: ใช้ ecosystem file
-pm2 start ecosystem.config.js
-```
-
-คำสั่ง PM2 ที่ใช้บ่อย
-
-```bash
-# Start application
-pm2 start ecosystem.config.js
 
 # List all processes
 pm2 list
@@ -382,6 +320,8 @@ pm2 monit
 # View logs
 pm2 logs meeting-registration
 pm2 logs meeting-registration --lines 100
+pm2 logs meeting-celery-worker
+pm2 logs meeting-rq-worker
 
 # Restart
 pm2 restart meeting-registration
@@ -411,23 +351,9 @@ pm2 describe meeting-registration
 pm2 reset meeting-registration
 ```
 
-Deploy
+## 🌐 Nginx Configuration
 
-```python
-def create_app(config_name=None):
-    """Application factory pattern"""
-    
-    app = Flask(__name__)
-    
-    # ถ้ารันผ่าน nginx ที่ /register/
-    app.config['APPLICATION_ROOT'] = '/register'
-    app.config['PREFERRED_URL_SCHEME'] = 'https'
-    
-    # ... rest of config
-```
-
-```bash
-
+```nginx
 # เพิ่ม upstream สำหรับ Flask app
 upstream flask_meeting_app {
     server localhost:9000;
@@ -436,7 +362,6 @@ upstream flask_meeting_app {
 
 server {
     listen 443 ssl;
-    
     server_name host.name.com;
     
     ssl_certificate_key /etc/letsencrypt/live/host.name.com/privkey.pem;
@@ -446,62 +371,60 @@ server {
     ssl_prefer_server_ciphers off;
 
     # Flask Meeting Registration App
-    # ✅ START: Flask Meeting Registration App
-   location /register/ {
-      # Proxy to Flask app
-      proxy_pass http://flask_meeting_app/;
-      
-      # Headers สำหรับ Flask app
-      proxy_set_header Host $host;
-      proxy_set_header X-Real-IP $remote_addr;
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header X-Forwarded-Proto $scheme;
-      proxy_set_header X-Forwarded-Prefix /register;
-      
-      # WebSocket support (ถ้าต้องการ)
-      proxy_http_version 1.1;
-      proxy_set_header Upgrade $http_upgrade;
-      proxy_set_header Connection "upgrade";
-      
-      # Timeout settings
-      proxy_connect_timeout 60s;
-      proxy_send_timeout 60s;
-      proxy_read_timeout 240s;
-      
-      # Buffer settings
-      proxy_buffering off;
-      proxy_request_buffering off;
-      
-      # Redirect handling
-      proxy_redirect off;
-   }
+    location /register/ {
+        # Proxy to Flask app
+        proxy_pass http://flask_meeting_app/;
+        
+        # Headers สำหรับ Flask app
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Prefix /register;
+        
+        # WebSocket support (ถ้าต้องการ)
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        
+        # Timeout settings
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 240s;
+        
+        # Buffer settings
+        proxy_buffering off;
+        proxy_request_buffering off;
+        
+        # Redirect handling
+        proxy_redirect off;
+    }
 
-   # Admin panel
-   location /register/admin {
-      proxy_pass http://flask_meeting_app/admin;
-      
-      proxy_set_header Host $host;
-      proxy_set_header X-Real-IP $remote_addr;
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header X-Forwarded-Proto $scheme;
-      proxy_set_header X-Forwarded-Prefix /register;
-      
-      proxy_http_version 1.1;
-      proxy_set_header Upgrade $http_upgrade;
-      proxy_set_header Connection "upgrade";
-      
-      proxy_read_timeout 240s;
-   }
+    # Admin panel
+    location /register/admin {
+        proxy_pass http://flask_meeting_app/admin;
+        
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Prefix /register;
+        
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        
+        proxy_read_timeout 240s;
+    }
 
-   # Static files (ถ้ามี)
-   location /register/static/ {
-      proxy_pass http://flask_meeting_app/static/;
-      
-      # Cache static files
-      expires 30d;
-      add_header Cache-Control "public, immutable";
-   }
-   # ✅ END: Flask Meeting Registration App
+    # Static files (ถ้ามี)
+    location /register/static/ {
+        proxy_pass http://flask_meeting_app/static/;
+        
+        # Cache static files
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
     
     # Other locations...
 }
@@ -517,12 +440,282 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-Run Flask App:
+## 📝 การใช้งาน
+
+### สำหรับผู้ลงทะเบียน
+
+1. เข้าหน้าลงทะเบียน
+2. เลือกการประชุม (ถ้ามีหลายงาน)
+3. กรอกรหัสพนักงาน (ไม่ต้องใส่ 0 นำหน้า)
+4. ระบบจะค้นหาข้อมูลอัตโนมัติ
+5. หากไม่พบ สามารถกรอกข้อมูลเองได้
+6. กด "ลงทะเบียน"
+
+### สำหรับผู้จัดการประชุม (Organizers)
+
+1. ลงทะเบียนเข้าใช้งานที่ `/auth/register`
+2. ระบบจะส่ง OTP ไปยัง email
+3. ยืนยัน OTP
+4. เข้าสู่ระบบที่ `/auth/login`
+5. จัดการการประชุม:
+   - สร้างการประชุมใหม่
+   - แก้ไขการประชุม
+   - ดูรายชื่อผู้ลงทะเบียน
+   - Export ข้อมูล CSV
+
+### สำหรับ Admin
+
+1. เข้าสู่ระบบที่ `/admin`
+2. ใช้ username/password ที่ตั้งไว้ใน .env
+3. จัดการระบบ:
+   - จัดการการประชุมทั้งหมด
+   - ดูสถิติการลงทะเบียน
+   - จัดการข้อมูลพนักงาน
+   - ลบการลงทะเบียน
+   - Export ข้อมูล
+
+## 🔍 API Endpoints
+
+### Public Endpoints
+- `GET /` - หน้าหลัก (แสดงการประชุมที่ active)
+- `GET /submit/<meeting_id>` - หน้าลงทะเบียนสำหรับการประชุมเฉพาะ
+- `POST /submit` - ส่งข้อมูลลงทะเบียน
+- `POST /submit/<meeting_id>` - ลงทะเบียนในการประชุมที่ระบุ
+- `POST /submit_manual` - ลงทะเบียนแบบกรอกเอง
+- `POST /submit_manual/<meeting_id>` - ลงทะเบียนแบบกรอกเองในการประชุมที่ระบุ
+- `GET /api/check_employee/<emp_id>` - ตรวจสอบข้อมูลพนักงาน
+- `GET /api/registration_status/<meeting_id>/<emp_id>` - ตรวจสอบสถานะการลงทะเบียน
+
+### Authentication Endpoints
+- `GET /auth/register` - หน้าลงทะเบียนผู้จัดการ
+- `POST /auth/register` - ส่งข้อมูลลงทะเบียน
+- `GET /auth/verify-register` - หน้ายืนยัน OTP สำหรับลงทะเบียน
+- `POST /auth/verify-register` - ยืนยัน OTP
+- `GET /auth/login` - หน้าเข้าสู่ระบบ
+- `POST /auth/login` - ส่งข้อมูลเข้าสู่ระบบ
+- `GET /auth/verify-login` - หน้ายืนยัน OTP สำหรับ login
+- `POST /auth/verify-login` - ยืนยัน OTP
+- `GET /auth/logout` - ออกจากระบบ
+- `GET /auth/check-email-status` - ตรวจสอบสถานะการส่ง email (AJAX)
+
+### Organizer Endpoints
+- `GET /organizer/` - Dashboard ผู้จัดการประชุม
+- `GET /organizer/meeting/create` - สร้างการประชุม
+- `POST /organizer/meeting/create` - บันทึกการประชุมใหม่
+- `GET /organizer/meeting/<id>/edit` - แก้ไขการประชุม
+- `POST /organizer/meeting/<id>/edit` - บันทึกการแก้ไข
+- `GET /organizer/meeting/<id>/registrations` - ดูผู้ลงทะเบียน
+- `GET /organizer/meeting/<id>/export` - Export CSV
+
+### Admin Endpoints
+- `GET /admin` - Admin dashboard
+- `GET /admin/login` - หน้าเข้าสู่ระบบ admin
+- `POST /admin/login` - ส่งข้อมูลเข้าสู่ระบบ
+- `GET /admin/logout` - ออกจากระบบ
+- `GET /admin/meetings` - จัดการการประชุม
+- `GET /admin/meetings/create` - สร้างการประชุม
+- `POST /admin/meetings/create` - บันทึกการประชุมใหม่
+- `GET /admin/meetings/<id>/edit` - แก้ไขการประชุม
+- `POST /admin/meetings/<id>/edit` - บันทึกการแก้ไข
+- `POST /admin/meetings/<id>/delete` - ลบการประชุม
+- `GET /admin/meetings/<id>/toggle` - เปิด/ปิดการประชุม
+- `GET /admin/registrations/<meeting_id>` - ดูรายชื่อผู้ลงทะเบียน
+- `GET /admin/registrations/<meeting_id>/export` - Export CSV
+- `POST /admin/registrations/<id>/delete` - ลบการลงทะเบียนเดี่ยว
+- `POST /admin/registrations/delete_multiple` - ลบหลายการลงทะเบียน
+- `POST /admin/registrations/<meeting_id>/delete_all` - ลบทั้งหมด
+- `GET /admin/employees` - จัดการข้อมูลพนักงาน
+- `GET /admin/statistics` - ดูสถิติ
+
+## 🐛 Troubleshooting
+
+### ปัญหา: ลงทะเบียนไม่ได้
+- ตรวจสอบว่ามีการประชุมที่ active อยู่
+- ตรวจสอบ rate limit (รอ 5 วินาทีระหว่างการลงทะเบียน)
+- ตรวจสอบว่าไม่ได้ลงทะเบียนซ้ำ
+
+### ปัญหา: ไม่พบข้อมูลพนักงาน
+- ตรวจสอบว่า import ข้อมูลแล้ว
+- ลองค้นหาโดยไม่ใส่ 0 นำหน้า
+- สามารถกรอกข้อมูลเองได้
+
+### ปัญหา: Email OTP ไม่ส่ง
+- ตรวจสอบ MAIL_* settings ใน .env
+- ตรวจสอบว่า RQ worker ทำงาน: `pm2 logs meeting-rq-worker`
+- ตรวจสอบ App-specific password สำหรับ Gmail
+
+### ปัญหา: Admin เข้าไม่ได้
+- ตรวจสอบ username/password ใน .env
+- Default: admin/admin2024
+
+### ปัญหา: Connection Pool Exhausted
+- เพิ่มค่า pool_size ใน config.py
+- ตรวจสอบ max_connections ใน PostgreSQL
+
+## 📊 Database Operations
+
+### ดู Logs
+```bash
+# PM2 logs
+pm2 logs meeting-registration --lines 100
+
+# Nginx logs
+tail -f /var/log/nginx/error.log
+tail -f /var/log/nginx/access.log
+
+# Application logs
+tail -f logs/app.log
+```
+
+### ดู Database
+```bash
+# เข้า PostgreSQL
+psql -U postgres -d meeting_registration
+
+# ดูจำนวนการลงทะเบียน
+SELECT COUNT(*) FROM registrations WHERE meeting_id = 1;
+
+# ดูการลงทะเบียนล่าสุด
+SELECT emp_id, emp_name, registration_time 
+FROM registrations 
+ORDER BY registration_time DESC 
+LIMIT 10;
+
+# ดูสถิติตามแผนก
+SELECT sec_short, COUNT(*) as count 
+FROM registrations 
+WHERE meeting_id = 1 
+GROUP BY sec_short 
+ORDER BY count DESC;
+
+# ลบ OTP ที่หมดอายุ
+DELETE FROM otp_tokens WHERE expires_at < CURRENT_TIMESTAMP;
+```
+
+## 🔐 Security Considerations
+
+1. **Passwords**: เปลี่ยน SECRET_KEY และ passwords ทั้งหมดใน production
+2. **HTTPS**: ใช้ HTTPS เสมอใน production
+3. **Database**: จำกัด database permissions
+4. **Firewall**: Setup firewall rules อย่างเหมาะสม
+5. **Rate Limiting**: ปรับค่า rate limit ตามความเหมาะสม
+6. **Email Domains**: กำหนด ALLOWED_EMAIL_DOMAINS เพื่อจำกัดการลงทะเบียน
+
+## 💾 Backup & Recovery
+
+### Backup Database
+```bash
+# Full backup
+pg_dump -U postgres meeting_registration > backup_$(date +%Y%m%d_%H%M%S).sql
+
+# Backup with compression
+pg_dump -U postgres -Fc meeting_registration > backup_$(date +%Y%m%d_%H%M%S).dump
+
+# Backup specific tables
+pg_dump -U postgres -t registrations -t meetings meeting_registration > registrations_backup.sql
+```
+
+### Restore Database
+```bash
+# From SQL file
+psql -U postgres meeting_registration < backup.sql
+
+# From compressed dump
+pg_restore -U postgres -d meeting_registration backup.dump
+
+# Restore specific table
+psql -U postgres meeting_registration < registrations_backup.sql
+```
+
+### Automated Backup (crontab)
+```bash
+# Edit crontab
+crontab -e
+
+# Add daily backup at 2 AM
+0 2 * * * pg_dump -U postgres meeting_registration | gzip > /backup/meeting_reg_$(date +\%Y\%m\%d).sql.gz
+
+# Keep only last 7 days
+0 3 * * * find /backup -name "meeting_reg_*.sql.gz" -mtime +7 -delete
+```
+
+## 🚀 Performance Tips
+
+1. **Database Indexing**: ตรวจสอบว่ามี index ที่จำเป็น (ดู database_schema.sql)
+2. **Redis Caching**: ใช้ Redis สำหรับ cache และ rate limiting
+3. **Connection Pooling**: ปรับ pool_size ตามจำนวนการใช้งาน
+4. **Gunicorn Workers**: ปรับจำนวน workers = (2 × CPU cores) + 1
+5. **PostgreSQL Tuning**: ปรับ shared_buffers, work_mem ตามขนาด RAM
+6. **Nginx Caching**: เปิด cache สำหรับ static files
+
+## 🔌 SSH Tunnel (สำหรับ Remote Database)
 
 ```bash
-# Production with Gunicorn
-gunicorn --bind 0.0.0.0:9000 --workers 4 "app:create_app('production')"
+# สร้าง SSH Tunnel
+ssh -L [LOCAL_PORT]:[REMOTE_HOST]:[REMOTE_PORT] username@server.com -N
 
-# หรือ Development
-python app.py
+# ตัวอย่าง
+ssh -L 5433:localhost:5432 username@centraldigital.cattelecom.com -N
+
+# โดยที่:
+# LOCAL_PORT = port ที่ local machine (ตรงกับ POSTGRES_PORT ใน .env)
+# REMOTE_HOST = localhost หรือ 127.0.0.1 (database host บน server)
+# REMOTE_PORT = port ที่ PostgreSQL ฟังอยู่บน server
 ```
+
+## 🔑 Database Permissions
+
+```sql
+-- ดูว่ามี user อะไรบ้าง
+\du
+
+-- ดูว่าใช้ database อะไร
+\l
+
+-- เข้า database ที่ถูกต้อง
+\c meeting_registration;
+
+-- ดูว่ามีตารางอะไรบ้าง
+\dt
+
+-- Grant ALL privileges สำหรับทุกตารางที่มีอยู่
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO your_username;
+
+-- Grant privileges สำหรับตารางที่จะสร้างในอนาคต
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO your_username;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO your_username;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO your_username;
+
+-- หรือถ้าต้องการ grant เฉพาะตารางที่จำเป็น
+GRANT ALL PRIVILEGES ON TABLE employees TO your_username;
+GRANT ALL PRIVILEGES ON TABLE meetings TO your_username;
+GRANT ALL PRIVILEGES ON TABLE registrations TO your_username;
+GRANT ALL PRIVILEGES ON TABLE users TO your_username;
+GRANT ALL PRIVILEGES ON TABLE otp_tokens TO your_username;
+
+-- Grant usage on sequences (สำหรับ auto-increment IDs)
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO your_username;
+```
+
+## Support & Contact
+
+หากพบปัญหาหรือต้องการความช่วยเหลือ:
+- 🐛 Issues: https://github.com/kaebmoo/mt-registering/issues
+
+## Version History
+
+- **v2.0.0** (Current) - Multi-role authentication, Email OTP, Organizer system
+- **v1.5.0** - Multiple meetings support
+- **v1.0.0** - Initial Flask migration from PHP
+
+## License
+
+MIT License - See LICENSE file for details
+
+## Credits
+
+Developed by IT Team / kaebmoo
+Based on original PHP system by thanyapat04
+
+---
+Last Updated: 2025
