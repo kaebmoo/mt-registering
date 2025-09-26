@@ -170,8 +170,14 @@ pip install -r requirements.txt
 #### 2. Setup PostgreSQL
 
 ```bash
-# สร้าง database
-createdb meeting_registration
+# วิธีที่ 1: ใช้ createdb (ถ้ามี)
+createdb -U postgres meeting_registration
+
+# วิธีที่ 2: ใช้ psql
+psql -U postgres -c "CREATE DATABASE meeting_registration"
+
+# วิธีที่ 3: ใช้ sudo (Linux)
+sudo -u postgres createdb meeting_registration
 
 # รัน schema
 psql -d meeting_registration -f database_schema.sql
