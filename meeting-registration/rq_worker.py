@@ -1,7 +1,7 @@
 # rq_worker.py
 import os
 import sys
-from rq import Worker, Queue, Connection
+from rq import Worker
 from redis import Redis
 
 # Add project directory to path
@@ -17,6 +17,6 @@ app.app_context().push()
 redis_conn = Redis.from_url(os.environ.get('REDIS_URL', 'redis://localhost:6379'))
 
 if __name__ == '__main__':
-    with Connection(redis_conn):
-        worker = Worker(['email', 'default'])
-        worker.work()
+
+    worker = Worker(['email', 'default'], connection=redis_conn) 
+    worker.work()
