@@ -49,7 +49,7 @@ class EmailService:
             
             # ✅ แก้ไข: ไม่ต้อง .encode() ที่ Header เพราะ formataddr จะจัดการให้เอง
             # และมั่นใจแล้วว่า self.sender_email เป็น str
-            message["From"] = formataddr((self.sender_name, self.sender_email))
+            message["From"] = formataddr((self.sender_name, self.sender_from_address))
             message["To"] = formataddr((recipient_name or recipient_email, recipient_email))
             
             # Plain text version
