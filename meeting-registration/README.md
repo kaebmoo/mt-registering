@@ -401,8 +401,8 @@ server {
     }
 
     # Admin panel
-    location /register/admin {
-        proxy_pass http://flask_meeting_app/admin;
+    location /register/admin/ {
+        proxy_pass http://flask_meeting_app/admin/;
         
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
