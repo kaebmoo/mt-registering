@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}รายชื่อผู้ลงทะเบียน - {{ meeting.topic }}{% endblock %}
+
+{% block content %}
+<div class="ui container">
+    <!-- Organizer Menu -->
+    <div class="ui secondary menu">
+        <a class="item" href="{{ url_for('organizer.dashboard') }}">
+            <i class="dashboard icon"></i> Dashboard
+        </a>
+        <div class="right menu">
+            <div class="item">
+                <i class="user icon"></i> {{ session.user_email }}
+            </div>
+            <a class="item" href="{{ url_for('auth.logout') }}">
+                <i class="sign out icon"></i> ออกจากระบบ
+            </a>
+        </div>
+    </div>
+
+    <h1 class="ui header">
+        <i class="users icon"></i>
+        <div class="content">
+            รายชื่อผู้ลงทะเบียน
+            <div class="sub header">{{ meeting.topic }}</div>
+        </div>
+    </h1>
+
+    <div class="ui segment">
+        <div class="ui two statistics">
+            <div class="statistic">
+                <div class="value">{{ registrations.total }}</div>
+                <div class="label">ผู้ลงทะเบียนทั้งหมด</div>
+            </div>
+            <div class="statistic">
+                <div class="value">
+                    {{ registrations.items | selectattr('is_manual_entry', 'equalto', True) | list | length }}
+                </div>
+                <div class="label">ลงทะเบียนด้วยตนเอง</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="ui segment">
+        <a href="{{ url_for('organizer.export_registrations', meeting_id=meeting.id) }}" 
+           class="ui green button">
+            <i class="download icon"></i> Export CSV
+        </a>
+        <a href="{{ url_for('organizer.edit_meeting', meeting_id=meeting.id) }}" 
+           class="ui blue button">
+            <i class="edit icon"></i> แก้ไขการประชุม
+        </a>
+    </div>
+
+    <table class="ui celled striped table">
+        <thead>
+            <tr>
+                <th>ลำดับ</th>
+                <th>รหัสพนักงาน</th>
+                <th>ชื่อ-นามสกุล</th>
+                <th>ตำแหน่ง</th>
+                <th>หน่วยงาน</th>
+                <th>เวลาลงทะเบียน</th>
+                <th>ประเภท</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for reg in registrations.items %}
+            <tr>
+                <td>{{ (registrations.page - 1) * registrations.per_page + loop.index }}</td>
+                <td>{{ reg.emp_id or '-' }}</td>
+                <td>{{ reg.emp_name }}</td>
+                <td>{{ reg.position or '-' }}</td>
+                <td>{{ reg.sec_short or '-' }}</td>
+                <td>{{ reg.registration_time|datetime_thai }}</td>
+                <td>
+                    {% if reg.is_manual_entry %}
+                        <div class="ui yellow label">กรอกเอง</div>
+                    {% else %}
+                        <div class="ui green label">อัตโนมัติ</div>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" class="center aligned">ยังไม่มีผู้ลงทะเบียน</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    {% if registrations.pages > 1 %}
+        <div class="ui pagination menu">
+            {% if registrations.has_prev %}
+            <a class="item" href="?page={{ registrations.prev_num }}">
+                <i class="left arrow icon"></i> ก่อนหน้า
+            </a>
+            {% endif %}
+            
+            {% for page_num in registrations.iter_pages() %}
+                {% if page_num %}
+                    {% if page_num != registrations.page %}
+                        <a class="item" href="?page={{ page_num }}">{{ page_num }}</a>
+                    {% else %}
+                        <div class="active item">{{ page_num }}</div>
+                    {% endif %}
+                {% else %}
+                    <div class="disabled item">...</div>
+                {% endif %}
+            {% endfor %}
+            
+            {% if registrations.has_next %}
+            <a class="item" href="?page={{ registrations.next_num }}">
+                ถัดไป <i class="right arrow icon"></i>
+            </a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

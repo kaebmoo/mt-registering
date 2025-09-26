@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - {{ user.name }}{% endblock %}
+
+{% block content %}
+<div class="ui container">
+    <!-- Organizer Menu -->
+    <div class="ui secondary menu">
+        <a class="active item" href="{{ url_for('organizer.dashboard') }}">
+            <i class="dashboard icon"></i> Dashboard
+        </a>
+        <a class="item" href="{{ url_for('organizer.create_meeting') }}">
+            <i class="plus icon"></i> สร้างการประชุม
+        </a>
+        <div class="right menu">
+            <div class="item">
+                <i class="user icon"></i> {{ user.email }}
+            </div>
+            <a class="item" href="{{ url_for('auth.logout') }}">
+                <i class="sign out icon"></i> ออกจากระบบ
+            </a>
+        </div>
+    </div>
+
+    <h1 class="ui header">
+        <i class="calendar icon"></i>
+        <div class="content">
+            การประชุมของคุณ
+            <div class="sub header">จัดการการประชุมที่คุณสร้าง</div>
+        </div>
+    </h1>
+
+    {% if meetings %}
+    <div class="ui cards">
+        {% for meeting in meetings %}
+        <div class="card">
+            <div class="content">
+                <div class="header">{{ meeting.topic }}</div>
+                <div class="meta">
+                    <span class="date">{{ meeting.meeting_date.strftime('%d/%m/%Y') }}</span>
+                    <span>{{ meeting.start_time.strftime('%H:%M') }} - {{ meeting.end_time.strftime('%H:%M') }}</span>
+                </div>
+                <div class="description">
+                    <p><i class="map marker icon"></i> ห้อง {{ meeting.room }} ชั้น {{ meeting.floor }}</p>
+                    <p><i class="users icon"></i> ผู้ลงทะเบียน: {{ meeting.registrations.count() }} คน</p>
+                </div>
+            </div>
+            <div class="extra content">
+                <div class="ui two buttons">
+                    <a href="{{ url_for('organizer.edit_meeting', meeting_id=meeting.id) }}" 
+                       class="ui basic blue button">
+                        <i class="edit icon"></i> แก้ไข
+                    </a>
+                    <a href="{{ url_for('organizer.view_registrations', meeting_id=meeting.id) }}" 
+                       class="ui basic green button">
+                        <i class="list icon"></i> ดูผู้ลงทะเบียน
+                    </a>
+                </div>
+            </div>
+            <div class="extra content">
+                {% if meeting.is_active %}
+                    <span class="ui green label">เปิดลงทะเบียน</span>
+                {% else %}
+                    <span class="ui grey label">ปิดลงทะเบียน</span>
+                {% endif %}
+                {% if meeting.is_public %}
+                    <span class="ui blue label">สาธารณะ</span>
+                {% else %}
+                    <span class="ui orange label">ส่วนตัว</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="ui info message">
+        <div class="header">ยังไม่มีการประชุม</div>
+        <p>คลิก <a href="{{ url_for('organizer.create_meeting') }}">สร้างการประชุม</a> เพื่อเริ่มต้น</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}สมัครใช้งาน{% endblock %}
+
+{% block content %}
+<div class="ui middle aligned center aligned grid" style="min-height: 70vh;">
+    <div class="column" style="max-width: 450px;">
+        <h2 class="ui teal header">
+            <i class="user plus icon"></i>
+            <div class="content">
+                สมัครใช้งานระบบ
+                <div class="sub header">สร้างบัญชีผู้จัดการประชุม</div>
+            </div>
+        </h2>
+        
+        <form class="ui large form" method="POST">
+            <div class="ui stacked segment">
+                <div class="field">
+                    <label>ชื่อ-นามสกุล</label>
+                    <div class="ui left icon input">
+                        <i class="user icon"></i>
+                        <input type="text" name="name" placeholder="ชื่อ-นามสกุล" required>
+                    </div>
+                </div>
+                
+                <div class="field">
+                    <label>อีเมล</label>
+                    <div class="ui left icon input">
+                        <i class="mail icon"></i>
+                        <input type="email" name="email" placeholder="email@company.com" required>
+                    </div>
+                </div>
+                
+                {% if config.ALLOWED_EMAIL_DOMAINS %}
+                <div class="ui info message">
+                    <div class="header">Domain ที่อนุญาต</div>
+                    <p>{{ config.ALLOWED_EMAIL_DOMAINS }}</p>
+                </div>
+                {% endif %}
+                
+                <button class="ui fluid large teal submit button" type="submit">
+                    <i class="paper plane icon"></i> ส่ง OTP
+                </button>
+            </div>
+        </form>
+        
+        <div class="ui message">
+            มีบัญชีแล้ว? <a href="{{ url_for('auth.login') }}">เข้าสู่ระบบ</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

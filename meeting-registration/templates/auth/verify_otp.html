@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}ยืนยัน OTP{% endblock %}
+
+{% block content %}
+<div class="ui middle aligned center aligned grid" style="min-height: 70vh;">
+    <div class="column" style="max-width: 450px;">
+        <h2 class="ui teal header">
+            <i class="key icon"></i>
+            <div class="content">
+                ยืนยันรหัส OTP
+                <div class="sub header">ส่งไปยัง {{ email }}</div>
+            </div>
+        </h2>
+        
+        <form class="ui large form" method="POST">
+            <div class="ui stacked segment">
+                <div class="field">
+                    <label>รหัส OTP 6 หลัก</label>
+                    <div class="ui left icon input">
+                        <i class="lock icon"></i>
+                        <input type="text" 
+                               name="otp" 
+                               placeholder="123456" 
+                               maxlength="6" 
+                               pattern="[0-9]{6}" 
+                               required
+                               autocomplete="off">
+                    </div>
+                </div>
+                
+                <div class="ui info message">
+                    <p>กรุณากรอกรหัส OTP ที่ส่งไปยังอีเมลของคุณ</p>
+                    <p>รหัสจะหมดอายุใน 10 นาที</p>
+                </div>
+                
+                <button class="ui fluid large teal submit button" type="submit">
+                    <i class="check icon"></i> ยืนยัน
+                </button>
+            </div>
+        </form>
+        
+        <div class="ui message">
+            ไม่ได้รับรหัส? 
+            <a href="javascript:history.back()">ส่งใหม่</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

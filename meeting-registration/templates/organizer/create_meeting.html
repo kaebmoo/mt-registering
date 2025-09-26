@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}สร้างการประชุม{% endblock %}
+
+{% block content %}
+<div class="ui container">
+    <h1 class="ui header">
+        <i class="calendar plus icon"></i>
+        <div class="content">
+            สร้างการประชุมใหม่
+            <div class="sub header">กำหนดรายละเอียดการประชุม</div>
+        </div>
+    </h1>
+
+    <form class="ui form" method="POST">
+        <div class="field">
+            <label>หัวข้อการประชุม</label>
+            <input type="text" name="topic" placeholder="ระบุหัวข้อการประชุม" required>
+        </div>
+        
+        <div class="three fields">
+            <div class="field">
+                <label>วันที่</label>
+                <input type="date" name="meeting_date" required>
+            </div>
+            <div class="field">
+                <label>เวลาเริ่ม</label>
+                <input type="time" name="start_time" required>
+            </div>
+            <div class="field">
+                <label>เวลาสิ้นสุด</label>
+                <input type="time" name="end_time" required>
+            </div>
+        </div>
+        
+        <div class="three fields">
+            <div class="field">
+                <label>ห้องประชุม</label>
+                <input type="text" name="room" placeholder="ชื่อห้อง" required>
+            </div>
+            <div class="field">
+                <label>ชั้น</label>
+                <input type="text" name="floor" placeholder="ชั้นที่" required>
+            </div>
+            <div class="field">
+                <label>อาคาร</label>
+                <input type="text" name="building" placeholder="ชื่ออาคาร" required>
+            </div>
+        </div>
+        
+        <div class="field">
+            <div class="ui checkbox">
+                <input type="checkbox" name="is_public" checked>
+                <label>เปิดให้ทุกคนลงทะเบียนได้ (สาธารณะ)</label>
+            </div>
+        </div>
+        
+        <button class="ui primary button" type="submit">
+            <i class="save icon"></i> สร้างการประชุม
+        </button>
+        <a href="{{ url_for('organizer.dashboard') }}" class="ui button">
+            <i class="cancel icon"></i> ยกเลิก
+        </a>
+    </form>
+</div>
+{% endblock %}

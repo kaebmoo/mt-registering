@@ -25,7 +25,7 @@
         </div>
 
         <div class="ui segment">
-            <form class="ui form" id="registrationForm" method="POST" action="{{ url_for('register') }}">
+            <form class="ui form" id="registrationForm" method="POST" action="{{ url_for('register', meeting_id=meeting.id) if meeting else url_for('register') }}">
                 <h3 class="ui dividing header">
                     <i class="user icon"></i>
                     ลงทะเบียนเข้าร่วมประชุม

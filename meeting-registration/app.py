@@ -28,6 +28,9 @@ from admin import admin_bp
 from extensions import cache, celery_app
 from timezone_utils import convert_to_timezone, format_datetime_thai, format_time_thai, format_date_thai
 
+from flask_mail import Mail
+from auth import auth_bp
+from organizer import organizer_bp
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -37,10 +40,16 @@ def create_app(config_name=None):
     """Application factory pattern"""
 
     app = Flask(__name__)
-    
+
     # Load configuration
     config_name = config_name or os.environ.get('FLASK_ENV', 'development')
     app.config.from_object(config[config_name])
+
+    # Register blueprints
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(organizer_bp)
+    # Register blueprints
+    app.register_blueprint(admin_bp)
 
     # Fix session configuration
     app.config['SESSION_COOKIE_NAME'] = 'meeting_session'
@@ -123,9 +132,6 @@ def create_app(config_name=None):
         default_limits=["200 per day", "50 per hour"],
         storage_uri=app.config.get('RATELIMIT_STORAGE_URL', 'memory://')
     )
-    
-    # Register blueprints
-    app.register_blueprint(admin_bp)
 
     # The Celery task definition can stay here
     @celery_app.task(name='tasks.send_to_google_sheets')
@@ -161,21 +167,56 @@ def create_app(config_name=None):
     
     @app.template_filter('datetime_thai')
     def datetime_thai_filter(dt, format='%d/%m/%Y %H:%M:%S'):
-        """Format datetime in Thai timezone"""
+        """Format UTC datetime to Thai timezone"""
+        if dt is None:
+            return ''
+        
         timezone = app.config.get('DISPLAY_TIMEZONE', 'Asia/Bangkok')
-        return format_datetime_thai(dt, timezone, format)
+        
+        # ถือว่าเวลาในฐานข้อมูลเป็น UTC
+        import pytz
+        if dt.tzinfo is None:
+            dt = pytz.UTC.localize(dt)
+        
+        # แปลงเป็น Bangkok time
+        bkk_tz = pytz.timezone(timezone)
+        local_dt = dt.astimezone(bkk_tz)
+        
+        return local_dt.strftime(format)
     
     @app.template_filter('time_thai')
     def time_thai_filter(dt):
         """Format time only in Thai timezone"""
+        if dt is None:
+            return ''
+        
         timezone = app.config.get('DISPLAY_TIMEZONE', 'Asia/Bangkok')
-        return format_time_thai(dt, timezone)
+        
+        import pytz
+        if dt.tzinfo is None:
+            dt = pytz.UTC.localize(dt)
+        
+        bkk_tz = pytz.timezone(timezone)
+        local_dt = dt.astimezone(bkk_tz)
+        
+        return local_dt.strftime('%H:%M:%S')
     
     @app.template_filter('date_thai')
     def date_thai_filter(dt):
         """Format date only in Thai timezone"""
+        if dt is None:
+            return ''
+        
         timezone = app.config.get('DISPLAY_TIMEZONE', 'Asia/Bangkok')
-        return format_date_thai(dt, timezone)
+        
+        import pytz
+        if dt.tzinfo is None:
+            dt = pytz.UTC.localize(dt)
+        
+        bkk_tz = pytz.timezone(timezone)
+        local_dt = dt.astimezone(bkk_tz)
+        
+        return local_dt.strftime('%d/%m/%Y')
     
     # Context processor to inject timezone info
     @app.context_processor
@@ -188,15 +229,41 @@ def create_app(config_name=None):
     
     @app.route('/')
     def index():
-        """Main registration page"""
-        meeting = Meeting.get_active_meeting()
-        if not meeting:
-            flash('ไม่มีการประชุมที่เปิดให้ลงทะเบียน', 'warning')
+        """Main registration page - แสดงตามจำนวนการประชุมที่ active"""
+        
+        # ดึงการประชุมที่ active และ public
+        active_meetings = Meeting.query.filter_by(
+            is_active=True,
+            is_public=True
+        ).order_by(Meeting.meeting_date, Meeting.start_time).all()
+        
+        if len(active_meetings) == 1:
+            # ถ้ามีประชุมเดียว ใช้หน้าเดิม (single meeting)
+            return render_template('index.html', meeting=active_meetings[0])
+        elif len(active_meetings) > 1:
+            # ถ้ามีหลายประชุม ใช้หน้าใหม่ (multiple meetings)
+            return render_template('index_multi.html', meetings=active_meetings)
+        else:
+            # ไม่มีประชุมเลย
+            return render_template('index_multi.html', meetings=[])
+    
+    @app.route('/register/<int:meeting_id>')
+    def register_meeting(meeting_id):
+        """Registration page for specific meeting"""
+        meeting = Meeting.query.get_or_404(meeting_id)
+        
+        if not meeting.is_active:
+            flash('การประชุมนี้ปิดรับลงทะเบียนแล้ว', 'warning')
+            return redirect(url_for('index'))
+        
         return render_template('index.html', meeting=meeting)
     
+    # app.py - แก้ไขฟังก์ชัน register
+
     @app.route('/submit', methods=['POST'])
-    @limiter.limit("10 per minute")  # Rate limit to prevent spam
-    def register():
+    @app.route('/submit/<int:meeting_id>', methods=['POST'])
+    @limiter.limit("10 per minute")
+    def register(meeting_id=None):  # ✅ เพิ่ม parameter meeting_id=None
         """Handle registration submission"""
         emp_id = request.form.get('emp_id', '').strip()
         
@@ -208,14 +275,16 @@ def create_app(config_name=None):
             flash(f'รหัสพนักงานต้องมีอย่างน้อย 6 หลัก (คุณใส่ {len(emp_id)} หลัก)', 'error')
             return render_template('manual_registration.html', emp_id=emp_id)
         
-        # Get active meeting
-        meeting = Meeting.get_active_meeting()
+        # หา meeting ที่จะลงทะเบียน
+        if meeting_id:
+            meeting = Meeting.query.get_or_404(meeting_id)
+        else:
+            # ถ้าไม่ระบุ meeting_id ให้หา active meeting
+            meeting = Meeting.get_active_meeting()
+        
         if not meeting:
             flash('ไม่มีการประชุมที่เปิดให้ลงทะเบียน', 'error')
             return redirect(url_for('index'))
-        # บังคับให้ SQLAlchemy โหลดสถานะล่าสุดของ meeting object จาก DB
-        # เพื่อล้างสถานะเก่าที่อาจค้างมาจาก Cache หรือ Session ก่อนหน้า
-        # meeting = db.session.merge(cached_meeting)
 
         # Check for cooldown period (prevent rapid submissions)
         last_registration_key = f"last_reg_{get_remote_address()}"
@@ -233,9 +302,9 @@ def create_app(config_name=None):
             if Registration.check_duplicate(meeting.id, employee.emp_id):
                 flash('คุณได้ลงทะเบียนในการประชุมนี้แล้ว', 'info')
                 return render_template('registration_success.html', 
-                                     registration_data=employee.to_dict(),
-                                     meeting=meeting,
-                                     already_registered=True)
+                                    registration_data=employee.to_dict(),
+                                    meeting=meeting,
+                                    already_registered=True)
             
             try:
                 # Create registration
@@ -259,7 +328,6 @@ def create_app(config_name=None):
                 
                 # Send to Google Sheets (async)
                 try:
-                    # Create a dictionary of data for the task
                     reg_data_for_task = {
                         'รหัสพนักงาน': registration.emp_id,
                         'ชื่อ': registration.emp_name,
@@ -269,24 +337,29 @@ def create_app(config_name=None):
                         'เวลาลงทะเบียน': registration.registration_time.isoformat(),
                         'ลงทะเบียนด้วยตนเอง': 'ใช่' if registration.is_manual_entry else 'ไม่ใช่'
                     }
-                    # Call the Celery task asynchronously using .delay()
                     send_to_google_sheets_task.delay(reg_data_for_task, app.config['GOOGLE_SCRIPT_URL'])
                 except Exception as e:
                     logger.error(f"Failed to queue task for Google Sheets: {e}")
                 
                 flash('ลงทะเบียนสำเร็จ', 'success')
                 return render_template('registration_success.html', 
-                                     registration_data=employee.to_dict(),
-                                     meeting=meeting,
-                                     already_registered=False)
+                                    registration_data=employee.to_dict(),
+                                    registration=registration,
+                                    meeting=meeting,
+                                    already_registered=False)
                 
             except IntegrityError:
                 db.session.rollback()
                 flash('คุณได้ลงทะเบียนในการประชุมนี้แล้ว', 'info')
+                existing_registration = Registration.query.filter_by(
+                    meeting_id=meeting.id,
+                    emp_id=employee.emp_id
+                ).first()
                 return render_template('registration_success.html', 
-                                     registration_data=employee.to_dict(),
-                                     meeting=meeting,
-                                     already_registered=True)
+                                    registration_data=employee.to_dict(),
+                                    registration=existing_registration,
+                                    meeting=meeting,
+                                    already_registered=True)
             except Exception as e:
                 db.session.rollback()
                 logger.error(f"Registration error: {e}")
@@ -295,14 +368,27 @@ def create_app(config_name=None):
         else:
             # Employee not found - show manual registration form
             return render_template('manual_registration.html', 
-                                 emp_id=emp_id,
-                                 meeting=meeting)
+                                emp_id=emp_id,
+                                meeting=meeting)
     
     @app.route('/submit_manual', methods=['POST'])
+    @app.route('/submit_manual/<int:meeting_id>', methods=['POST'])
     @limiter.limit("5 per minute")
-    def register_manual():
+    def register_manual(meeting_id=None):
         """Handle manual registration submission"""
-        meeting = Meeting.get_active_meeting()
+
+        # ✅ ใช้ meeting_id ที่ส่งมา ถ้าไม่มีค่อยหา active meeting
+        if meeting_id:
+            meeting = Meeting.query.get_or_404(meeting_id)
+            if not meeting.is_active:
+                flash('การประชุมนี้ปิดรับลงทะเบียนแล้ว', 'warning')
+                return redirect(url_for('index'))
+        else:
+            meeting = Meeting.get_active_meeting()
+            if not meeting:
+                flash('ไม่มีการประชุมที่เปิดให้ลงทะเบียน', 'error')
+                return redirect(url_for('index'))
+        
         if not meeting:
             flash('ไม่มีการประชุมที่เปิดให้ลงทะเบียน', 'error')
             return redirect(url_for('index'))
@@ -381,6 +467,7 @@ def create_app(config_name=None):
                                      'sec_short': new_sec_short,
                                      'cc_name': new_cc_name
                                  },
+                                 registration=registration,
                                  meeting=meeting,
                                  already_registered=False,
                                  is_manual=True)

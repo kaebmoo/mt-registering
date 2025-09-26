@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}เข้าสู่ระบบ{% endblock %}
+
+{% block content %}
+<div class="ui middle aligned center aligned grid" style="min-height: 70vh;">
+    <div class="column" style="max-width: 450px;">
+        <h2 class="ui teal header">
+            <i class="sign in icon"></i>
+            <div class="content">
+                เข้าสู่ระบบ
+                <div class="sub header">สำหรับผู้จัดการประชุม</div>
+            </div>
+        </h2>
+        
+        <form class="ui large form" method="POST">
+            <div class="ui stacked segment">
+                <div class="field">
+                    <label>อีเมล</label>
+                    <div class="ui left icon input">
+                        <i class="mail icon"></i>
+                        <input type="email" name="email" placeholder="email@company.com" required>
+                    </div>
+                </div>
+                
+                <button class="ui fluid large teal submit button" type="submit">
+                    <i class="paper plane icon"></i> ส่ง OTP
+                </button>
+            </div>
+        </form>
+        
+        <div class="ui message">
+            ยังไม่มีบัญชี? <a href="{{ url_for('auth.register') }}">สมัครใช้งาน</a>
+        </div>
+        
+        <div class="ui divider"></div>
+        
+        <div class="ui message">
+            <a href="{{ url_for('admin.login') }}">
+                <i class="shield icon"></i> เข้าสู่ระบบ Admin
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

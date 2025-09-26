@@ -1,10 +1,9 @@
-# timezone_utils.py - สร้างไฟล์ใหม่ในโปรเจค
-
+# timezone_utils.py
 import pytz
 from datetime import datetime
 
 def convert_to_timezone(dt, timezone='Asia/Bangkok'):
-    """Convert UTC datetime to specific timezone"""
+    """Convert UTC to specific timezone"""
     if dt is None:
         return None
     
@@ -17,14 +16,18 @@ def convert_to_timezone(dt, timezone='Asia/Bangkok'):
     return dt.astimezone(tz)
 
 def format_datetime_thai(dt, timezone='Asia/Bangkok', format='%d/%m/%Y %H:%M:%S'):
-    """Format datetime to Thai timezone and format"""
+    """Format UTC datetime to Thai timezone"""
     if dt is None:
         return ''
     
-    # แปลง timezone
-    local_dt = convert_to_timezone(dt, timezone)
+    # ถือว่าเวลาในฐานข้อมูลเป็น UTC เสมอ
+    if dt.tzinfo is None:
+        dt = pytz.UTC.localize(dt)
     
-    # Format ตามที่ต้องการ
+    # แปลงเป็น Bangkok time
+    bkk_tz = pytz.timezone(timezone)
+    local_dt = dt.astimezone(bkk_tz)
+    
     return local_dt.strftime(format)
 
 def format_time_thai(dt, timezone='Asia/Bangkok'):

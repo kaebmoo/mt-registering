@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}แก้ไขการประชุม{% endblock %}
+
+{% block content %}
+<div class="ui container">
+    <!-- Organizer Menu -->
+    <div class="ui secondary menu">
+        <a class="item" href="{{ url_for('organizer.dashboard') }}">
+            <i class="dashboard icon"></i> Dashboard
+        </a>
+        <div class="right menu">
+            <div class="item">
+                <i class="user icon"></i> {{ session.user_email }}
+            </div>
+            <a class="item" href="{{ url_for('auth.logout') }}">
+                <i class="sign out icon"></i> ออกจากระบบ
+            </a>
+        </div>
+    </div>
+
+    <h1 class="ui header">
+        <i class="edit icon"></i>
+        <div class="content">
+            แก้ไขการประชุม
+            <div class="sub header">แก้ไขข้อมูลการประชุม</div>
+        </div>
+    </h1>
+
+    <form class="ui form" method="POST">
+        <div class="field">
+            <label>หัวข้อการประชุม</label>
+            <input type="text" name="topic" value="{{ meeting.topic }}" required>
+        </div>
+        
+        <div class="three fields">
+            <div class="field">
+                <label>วันที่</label>
+                <input type="date" name="meeting_date" 
+                       value="{{ meeting.meeting_date.strftime('%Y-%m-%d') }}" required>
+            </div>
+            <div class="field">
+                <label>เวลาเริ่ม</label>
+                <input type="time" name="start_time" 
+                       value="{{ meeting.start_time.strftime('%H:%M') }}" required>
+            </div>
+            <div class="field">
+                <label>เวลาสิ้นสุด</label>
+                <input type="time" name="end_time" 
+                       value="{{ meeting.end_time.strftime('%H:%M') }}" required>
+            </div>
+        </div>
+        
+        <div class="three fields">
+            <div class="field">
+                <label>ห้องประชุม</label>
+                <input type="text" name="room" value="{{ meeting.room }}" required>
+            </div>
+            <div class="field">
+                <label>ชั้น</label>
+                <input type="text" name="floor" value="{{ meeting.floor }}" required>
+            </div>
+            <div class="field">
+                <label>อาคาร</label>
+                <input type="text" name="building" value="{{ meeting.building }}" required>
+            </div>
+        </div>
+        
+        <div class="field">
+            <div class="ui checkbox">
+                <input type="checkbox" name="is_public" {% if meeting.is_public %}checked{% endif %}>
+                <label>เปิดให้ทุกคนลงทะเบียนได้ (สาธารณะ)</label>
+            </div>
+        </div>
+        
+        <div class="field">
+            <div class="ui checkbox">
+                <input type="checkbox" name="is_active" {% if meeting.is_active %}checked{% endif %}>
+                <label>เปิดรับลงทะเบียน</label>
+            </div>
+        </div>
+        
+        <button class="ui primary button" type="submit">
+            <i class="save icon"></i> บันทึกการเปลี่ยนแปลง
+        </button>
+        <a href="{{ url_for('organizer.dashboard') }}" class="ui button">
+            <i class="cancel icon"></i> ยกเลิก
+        </a>
+    </form>
+</div>
+{% endblock %}

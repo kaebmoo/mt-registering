@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}ลงทะเบียนการประชุม{% endblock %}
+
+{% block content %}
+<div class="ui container">
+    <h1 class="ui header">
+        <i class="calendar check icon"></i>
+        <div class="content">
+            ระบบลงทะเบียนการประชุม
+            <div class="sub header">เลือกการประชุมที่ต้องการลงทะเบียน</div>
+        </div>
+    </h1>
+
+    {% if meetings %}
+    <div class="ui cards">
+        {% for meeting in meetings %}
+        <div class="card">
+            <div class="content">
+                <div class="header">{{ meeting.topic }}</div>
+                <div class="meta">
+                    <span class="date">{{ meeting.meeting_date.strftime('%d/%m/%Y') }}</span>
+                </div>
+                <div class="description">
+                    <p><i class="clock icon"></i> {{ meeting.start_time.strftime('%H:%M') }} - {{ meeting.end_time.strftime('%H:%M') }}</p>
+                    <p><i class="map marker icon"></i> ห้อง {{ meeting.room }} ชั้น {{ meeting.floor }} อาคาร {{ meeting.building }}</p>
+                    {% if meeting.organizer %}
+                    <p><i class="user icon"></i> ผู้จัด: {{ meeting.organizer.name }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="extra content">
+                <a href="{{ url_for('register_meeting', meeting_id=meeting.id) }}" 
+                   class="ui fluid primary button">
+                    <i class="sign in icon"></i> ลงทะเบียน
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="ui warning message">
+        <div class="header">ไม่มีการประชุมที่เปิดให้ลงทะเบียน</div>
+        <p>ขณะนี้ไม่มีการประชุมที่เปิดรับลงทะเบียน กรุณาตรวจสอบใหม่ภายหลัง</p>
+    </div>
+    {% endif %}
+    
+    <div class="ui divider"></div>
+    
+    <div class="ui secondary menu">
+        <a class="item" href="{{ url_for('auth.login') }}">
+            <i class="user icon"></i> เข้าสู่ระบบผู้จัดการประชุม
+        </a>
+        <a class="item" href="{{ url_for('admin.login') }}">
+            <i class="shield icon"></i> Admin
+        </a>
+    </div>
+</div>
+{% endblock %}

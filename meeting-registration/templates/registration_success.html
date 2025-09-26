@@ -23,7 +23,9 @@
                         ลงทะเบียนสำเร็จ
                     {% endif %}
                 </div>
-                <p>เวลาลงทะเบียน: {{ datetime.now()|datetime_thai }}</p>
+                {% if not already_registered and registration %}
+                    <p>เวลาลงทะเบียน: {{ registration.registration_time|datetime_thai }}</p>
+                {% endif %}
                 <p>ข้อมูลของคุณได้ถูกบันทึกเรียบร้อยแล้ว</p>
             </div>
         </div>

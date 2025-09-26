@@ -85,6 +85,21 @@ class Config:
     DISPLAY_TIMEZONE = os.environ.get('DISPLAY_TIMEZONE', 'Asia/Bangkok')
     DISPLAY_TZ = pytz.timezone(DISPLAY_TIMEZONE)
 
+    # Email configuration
+    MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+    MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true'
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
+    MAIL_FROM = os.environ.get('MAIL_FROM', 'noreply@example.com')
+
+    # Allowed email domains (comma separated)
+    ALLOWED_EMAIL_DOMAINS = os.environ.get('ALLOWED_EMAIL_DOMAINS', '')  # เช่น 'company.com,organization.org'
+    
+    # OTP settings
+    OTP_VALIDITY_MINUTES = int(os.environ.get('OTP_VALIDITY_MINUTES', 10))
+    OTP_MAX_ATTEMPTS = int(os.environ.get('OTP_MAX_ATTEMPTS', 3))
+
 class DevelopmentConfig(Config):
     """Development configuration"""
     DEBUG = True

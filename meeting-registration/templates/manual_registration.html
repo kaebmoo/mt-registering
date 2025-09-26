@@ -18,8 +18,8 @@
             <p>เนื่องจากไม่พบข้อมูลของคุณในระบบ กรุณากรอกข้อมูลด้านล่างเพื่อลงทะเบียน</p>
         </div>
         
-        <form class="ui form" method="POST" action="{{ url_for('register_manual') }}">
-            <div class="required field">
+        <form class="ui form" method="POST" action="{{ url_for('register_manual', meeting_id=meeting.id) if meeting else url_for('register_manual') }}">
+            <div class="required field">     
                 <label>รหัสพนักงาน</label>
                 <div class="ui left icon input">
                     <i class="id card outline icon"></i>
