@@ -247,7 +247,7 @@ def create_app(config_name=None):
             # ไม่มีประชุมเลย
             return render_template('index_multi.html', meetings=[])
     
-    @app.route('/register/<int:meeting_id>')
+    @app.route('/submit/<int:meeting_id>')
     def register_meeting(meeting_id):
         """Registration page for specific meeting"""
         meeting = Meeting.query.get_or_404(meeting_id)
