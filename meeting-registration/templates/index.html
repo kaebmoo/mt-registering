@@ -60,6 +60,16 @@
                         <li>ระบบจะป้องกันการลงทะเบียนซ้ำโดยอัตโนมัติ</li>
                     </ul>
                 </div>
+                <div class="ui divider"></div>
+    
+                <div class="ui secondary menu">
+                    <a class="item" href="{{ url_for('auth.login') }}">
+                        <i class="user icon"></i> เข้าสู่ระบบผู้จัดการประชุม
+                    </a>
+                    <a class="item" href="{{ url_for('admin.login') }}">
+                        <i class="shield icon"></i> Admin
+                    </a>
+                </div>
             </form>
         </div>
     {% else %}
