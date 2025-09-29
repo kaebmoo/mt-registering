@@ -1,3 +1,4 @@
+<!-- templates/index_multi_with_qr.html -->
 {% extends "base.html" %}
 
 {% block title %}ลงทะเบียนการประชุม{% endblock %}
@@ -8,7 +9,7 @@
         <i class="calendar check icon"></i>
         <div class="content">
             ระบบลงทะเบียนการประชุม
-            <div class="sub header">เลือกการประชุมที่ต้องการลงทะเบียน</div>
+            <div class="sub header">เลือกการประชุมที่ต้องการลงทะเบียน หรือสแกน QR Code</div>
         </div>
     </h1>
 
@@ -29,11 +30,30 @@
                     {% endif %}
                 </div>
             </div>
+            
+            <!-- QR Code Section -->
+            <div class="image">
+                <div style="padding: 20px; background: #f8f9fa; text-align: center;">
+                    <img src="data:image/png;base64,{{ get_meeting_qr(meeting.id) }}" 
+                         alt="QR Code for {{ meeting.topic }}"
+                         style="max-width: 200px; width: 100%; height: auto;">
+                    <p style="margin-top: 10px; color: #666; font-size: 0.9em;">
+                        <i class="qrcode icon"></i> สแกน QR Code เพื่อลงทะเบียน
+                    </p>
+                </div>
+            </div>
+            
             <div class="extra content">
-                <a href="{{ url_for('register', meeting_id=meeting.id) }}" 
-                   class="ui fluid primary button">
-                    <i class="sign in icon"></i> ลงทะเบียน
-                </a>
+                <div class="ui two buttons">
+                    <a href="{{ url_for('register', meeting_id=meeting.id) }}" 
+                       class="ui primary button">
+                        <i class="sign in icon"></i> ลงทะเบียน
+                    </a>
+                    <a href="{{ url_for('meeting_qrcode', meeting_id=meeting.id) }}" 
+                       class="ui basic button">
+                        <i class="qrcode icon"></i> QR Code
+                    </a>
+                </div>
             </div>
         </div>
         {% endfor %}
@@ -56,4 +76,16 @@
         </a>
     </div>
 </div>
+
+<style>
+    .ui.cards > .card > .image {
+        background: #f8f9fa !important;
+    }
+    
+    @media only screen and (max-width: 767px) {
+        .ui.cards > .card > .image img {
+            max-width: 150px !important;
+        }
+    }
+</style>
 {% endblock %}

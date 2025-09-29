@@ -1,3 +1,4 @@
+<!-- templates/organizer/registrations_with_qr.html -->
 {% extends "base.html" %}
 
 {% block title %}รายชื่อผู้ลงทะเบียน - {{ meeting.topic }}{% endblock %}
@@ -9,9 +10,12 @@
         <a class="item" href="{{ url_for('organizer.dashboard') }}">
             <i class="dashboard icon"></i> Dashboard
         </a>
+        <a class="active item" href="#">
+            <i class="list icon"></i> รายชื่อผู้ลงทะเบียน
+        </a>
         <div class="right menu">
             <div class="item">
-                <i class="user icon"></i> {{ session.user_email }}
+                <i class="user icon"></i> {{ current_user.email }}
             </div>
             <a class="item" href="{{ url_for('auth.logout') }}">
                 <i class="sign out icon"></i> ออกจากระบบ
@@ -27,96 +31,125 @@
         </div>
     </h1>
 
-    <div class="ui segment">
-        <div class="ui two statistics">
-            <div class="statistic">
-                <div class="value">{{ registrations.total }}</div>
-                <div class="label">ผู้ลงทะเบียนทั้งหมด</div>
+    <!-- Meeting Info -->
+    <div class="ui info message">
+        <div class="ui grid">
+            <div class="ten wide column">
+                <p><i class="calendar icon"></i> <strong>วันที่:</strong> {{ meeting.meeting_date.strftime('%d/%m/%Y') }}</p>
+                <p><i class="clock icon"></i> <strong>เวลา:</strong> {{ meeting.start_time.strftime('%H:%M') }} - {{ meeting.end_time.strftime('%H:%M') }}</p>
+                <p><i class="map marker icon"></i> <strong>สถานที่:</strong> ห้อง {{ meeting.room }} ชั้น {{ meeting.floor }} อาคาร {{ meeting.building }}</p>
+                <p><i class="users icon"></i> <strong>จำนวนผู้ลงทะเบียน:</strong> {{ registrations|length }} คน</p>
             </div>
-            <div class="statistic">
-                <div class="value">
-                    {{ registrations.items | selectattr('is_manual_entry', 'equalto', True) | list | length }}
-                </div>
-                <div class="label">ลงทะเบียนด้วยตนเอง</div>
+            <div class="six wide column right aligned">
+                <!-- QR Code Actions -->
+                <a href="{{ url_for('meeting_qrcode', meeting_id=meeting.id) }}" 
+                   class="ui purple button" target="_blank">
+                    <i class="qrcode icon"></i> ดู QR Code
+                </a>
+                <a href="{{ url_for('download_meeting_qrcode', meeting_id=meeting.id) }}" 
+                   class="ui green button">
+                    <i class="download icon"></i> ดาวน์โหลด QR
+                </a>
             </div>
         </div>
     </div>
 
+    <!-- Export Buttons -->
     <div class="ui segment">
-        <a href="{{ url_for('organizer.export_registrations', meeting_id=meeting.id) }}" 
-           class="ui green button">
-            <i class="download icon"></i> Export CSV
-        </a>
-        <a href="{{ url_for('organizer.edit_meeting', meeting_id=meeting.id) }}" 
-           class="ui blue button">
-            <i class="edit icon"></i> แก้ไขการประชุม
-        </a>
+        <div class="ui buttons">
+            <button class="ui green button" onclick="exportToExcel()">
+                <i class="file excel icon"></i> Export Excel
+            </button>
+            <button class="ui blue button" onclick="exportToCSV()">
+                <i class="file alternate icon"></i> Export CSV
+            </button>
+            <button class="ui orange button" onclick="window.print()">
+                <i class="print icon"></i> พิมพ์รายชื่อ
+            </button>
+            <a href="{{ url_for('organizer.edit_meeting', meeting_id=meeting.id) }}" 
+               class="ui button">
+                <i class="edit icon"></i> แก้ไขการประชุม
+            </a>
+        </div>
     </div>
 
-    <table class="ui celled striped table">
+    <!-- Registrations Table -->
+    {% if registrations %}
+    <table class="ui celled striped table" id="registrationsTable">
         <thead>
             <tr>
                 <th>ลำดับ</th>
                 <th>รหัสพนักงาน</th>
-                <th>ชื่อ-นามสกุล</th>
+                <th>ชื่อ-สกุล</th>
                 <th>ตำแหน่ง</th>
-                <th>หน่วยงาน</th>
+                <th>ส่วนงาน</th>
+                <th>ศูนย์ต้นทุน</th>
                 <th>เวลาลงทะเบียน</th>
-                <th>ประเภท</th>
+                <th>ลงทะเบียนด้วยตนเอง</th>
             </tr>
         </thead>
         <tbody>
-            {% for reg in registrations.items %}
+            {% for reg in registrations %}
             <tr>
-                <td>{{ (registrations.page - 1) * registrations.per_page + loop.index }}</td>
-                <td>{{ reg.emp_id or '-' }}</td>
+                <td class="center aligned">{{ loop.index }}</td>
+                <td>{{ reg.emp_id }}</td>
                 <td>{{ reg.emp_name }}</td>
                 <td>{{ reg.position or '-' }}</td>
                 <td>{{ reg.sec_short or '-' }}</td>
-                <td>{{ reg.registration_time|datetime_thai }}</td>
-                <td>
+                <td>{{ reg.cc_name or '-' }}</td>
+                <td>{{ reg.registration_time|datetime_thai('%d/%m/%Y %H:%M:%S') }}</td>
+                <td class="center aligned">
                     {% if reg.is_manual_entry %}
-                        <div class="ui yellow label">กรอกเอง</div>
+                        <i class="check green icon"></i>
                     {% else %}
-                        <div class="ui green label">อัตโนมัติ</div>
+                        <i class="times red icon"></i>
                     {% endif %}
                 </td>
             </tr>
-            {% else %}
-            <tr>
-                <td colspan="7" class="center aligned">ยังไม่มีผู้ลงทะเบียน</td>
-            </tr>
             {% endfor %}
         </tbody>
+        <tfoot>
+            <tr>
+                <th colspan="8">
+                    <div class="ui right floated pagination menu">
+                        <div class="item">
+                            รวมทั้งหมด: {{ registrations|length }} คน
+                        </div>
+                    </div>
+                </th>
+            </tr>
+        </tfoot>
     </table>
-
-    <!-- Pagination -->
-    {% if registrations.pages > 1 %}
-        <div class="ui pagination menu">
-            {% if registrations.has_prev %}
-            <a class="item" href="?page={{ registrations.prev_num }}">
-                <i class="left arrow icon"></i> ก่อนหน้า
-            </a>
-            {% endif %}
-            
-            {% for page_num in registrations.iter_pages() %}
-                {% if page_num %}
-                    {% if page_num != registrations.page %}
-                        <a class="item" href="?page={{ page_num }}">{{ page_num }}</a>
-                    {% else %}
-                        <div class="active item">{{ page_num }}</div>
-                    {% endif %}
-                {% else %}
-                    <div class="disabled item">...</div>
-                {% endif %}
-            {% endfor %}
-            
-            {% if registrations.has_next %}
-            <a class="item" href="?page={{ registrations.next_num }}">
-                ถัดไป <i class="right arrow icon"></i>
-            </a>
-            {% endif %}
-        </div>
+    {% else %}
+    <div class="ui warning message">
+        <div class="header">ยังไม่มีผู้ลงทะเบียน</div>
+        <p>ยังไม่มีผู้ลงทะเบียนเข้าร่วมการประชุมนี้</p>
+    </div>
     {% endif %}
 </div>
+
+<style>
+    @media print {
+        .ui.menu, .ui.buttons, .ui.button {
+            display: none !important;
+        }
+        .ui.message .right.aligned.column {
+            display: none !important;
+        }
+    }
+</style>
+
+<script>
+function exportToExcel() {
+    // Implementation for Excel export
+    alert('กำลังดาวน์โหลดไฟล์ Excel...');
+    window.location.href = "{{ url_for('organizer.export_registrations', meeting_id=meeting.id, format='excel') }}";
+}
+
+function exportToCSV() {
+    // Implementation for CSV export  
+    alert('กำลังดาวน์โหลดไฟล์ CSV...');
+    window.location.href = "{{ url_for('organizer.export_registrations', meeting_id=meeting.id, format='csv') }}";
+}
+</script>
 {% endblock %}

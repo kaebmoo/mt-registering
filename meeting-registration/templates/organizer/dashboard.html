@@ -1,3 +1,4 @@
+<!-- templates/organizer/dashboard_with_qr.html -->
 {% extends "base.html" %}
 
 {% block title %}Dashboard - {{ user.name }}{% endblock %}
@@ -45,15 +46,30 @@
                     <p><i class="users icon"></i> ผู้ลงทะเบียน: {{ meeting.registrations.count() }} คน</p>
                 </div>
             </div>
+            
+            <!-- Quick QR Preview -->
+            <div class="image" style="background: #f8f9fa; padding: 15px; text-align: center;">
+                <img src="data:image/png;base64,{{ get_meeting_qr(meeting.id) }}" 
+                     alt="QR Code"
+                     style="max-width: 150px; width: 100%; height: auto;">
+                <div style="margin-top: 8px;">
+                    <small style="color: #666;">QR Code สำหรับลงทะเบียน</small>
+                </div>
+            </div>
+            
             <div class="extra content">
-                <div class="ui two buttons">
+                <div class="ui three small buttons">
                     <a href="{{ url_for('organizer.edit_meeting', meeting_id=meeting.id) }}" 
                        class="ui basic blue button">
                         <i class="edit icon"></i> แก้ไข
                     </a>
                     <a href="{{ url_for('organizer.view_registrations', meeting_id=meeting.id) }}" 
                        class="ui basic green button">
-                        <i class="list icon"></i> ดูผู้ลงทะเบียน
+                        <i class="list icon"></i> รายชื่อ
+                    </a>
+                    <a href="{{ url_for('meeting_qrcode', meeting_id=meeting.id) }}" 
+                       class="ui basic purple button">
+                        <i class="qrcode icon"></i> QR
                     </a>
                 </div>
             </div>

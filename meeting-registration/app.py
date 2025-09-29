@@ -31,10 +31,12 @@ from timezone_utils import convert_to_timezone, format_datetime_thai, format_tim
 from flask_mail import Mail
 from auth import auth_bp
 from organizer import organizer_bp
+from qrcode_utils import generate_meeting_qr, generate_qr_base64
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 def create_app(config_name=None):
     """Application factory pattern"""
@@ -227,6 +229,30 @@ def create_app(config_name=None):
             'datetime': datetime
         }
     
+    def get_logo_path():
+        """Get logo path relative to Flask app - works everywhere"""
+        # Check in static folder (Flask default location)
+        static_folder = app.static_folder or 'static'
+        
+        possible_logos = [
+            'logo.png',
+            '01_NT-Logo.png',
+            'nt-logo.png'
+        ]
+        
+        for filename in possible_logos:
+            # Try static folder
+            path = os.path.join(static_folder, filename)
+            if os.path.exists(path):
+                return path
+                
+        # Try root directory  
+        for filename in possible_logos:
+            if os.path.exists(filename):
+                return filename
+        
+        return None
+
     @app.route('/')
     def index():
         """Main registration page - แสดงตามจำนวนการประชุมที่ active"""
@@ -569,6 +595,91 @@ def create_app(config_name=None):
         except Exception as e:
             logger.error(f"Error sending to Google Sheets: {e}")
             # Don't raise - this is not critical
+    
+    # เพิ่ม Route สำหรับดู QR Code ของการประชุม
+    @app.route('/meeting/<int:meeting_id>/qrcode')
+    def meeting_qrcode(meeting_id):
+        """Display QR Code for a specific meeting"""
+        meeting = Meeting.query.get_or_404(meeting_id)
+        
+        # Get base URL from configuration or request
+        base_url = request.url_root.rstrip('/')
+        if app.config.get('APPLICATION_ROOT'):
+            base_url = base_url + app.config['APPLICATION_ROOT'].rstrip('/')
+        
+        # Use absolute path for logo
+        logo_path = get_logo_path()
+        
+    
+        # Generate QR Code with absolute logo path
+        from qrcode_utils import generate_qr_base64
+        registration_url = f"{base_url}/submit/{meeting_id}"
+        qr_base64 = generate_qr_base64(registration_url, with_logo=True, logo_path=logo_path)
+        
+        return render_template('qrcode_display.html', 
+                            meeting=meeting,
+                            qr_image=qr_base64,
+                            registration_url=registration_url)
+
+    # เพิ่ม Route สำหรับดาวน์โหลด QR Code
+    @app.route('/meeting/<int:meeting_id>/qrcode/download')
+    def download_meeting_qrcode(meeting_id):
+        """Download QR Code as PNG file"""
+        from flask import send_file
+        
+        meeting = Meeting.query.get_or_404(meeting_id)
+        
+        # Get base URL
+        base_url = request.url_root.rstrip('/')
+        if app.config.get('APPLICATION_ROOT'):
+            base_url = base_url + app.config['APPLICATION_ROOT'].rstrip('/')
+
+        logo_path = get_logo_path()
+        
+        # Generate QR Code image
+        from qrcode_utils import generate_qr_code
+        registration_url = f"{base_url}/submit/{meeting_id}"
+        
+        img = generate_qr_code(registration_url, with_logo=True, logo_path=logo_path)
+        
+        # Save to BytesIO for download
+        from io import BytesIO
+        buffered = BytesIO()
+        img.save(buffered, format="PNG")
+        buffered.seek(0)
+        
+        filename = f"qrcode_meeting_{meeting_id}.png"
+        
+        return send_file(
+            buffered,
+            mimetype='image/png',
+            as_attachment=True,
+            download_name=filename
+        )
+
+    # เพิ่ม context processor เพื่อสร้าง QR Code สำหรับการประชุม
+    @app.context_processor
+    def inject_qrcode_generator():
+        """Make QR code generator available in templates"""
+        def get_meeting_qr(meeting_id):
+            base_url = request.url_root.rstrip('/')
+            if app.config.get('APPLICATION_ROOT'):
+                base_url = base_url + app.config['APPLICATION_ROOT'].rstrip('/')
+            
+            # Get logo path using helper function
+            logo_path = get_logo_path()
+            
+            if logo_path:
+                logger.info(f"Logo found at: {logo_path}")
+            else:
+                logger.warning("No logo found in any location")
+            
+            # Generate QR code with or without logo based on availability
+            from qrcode_utils import generate_qr_base64
+            registration_url = f"{base_url}/submit/{meeting_id}"
+            return generate_qr_base64(registration_url, with_logo=bool(logo_path), logo_path=logo_path)
+        
+        return dict(get_meeting_qr=get_meeting_qr)
     
     return app
 

@@ -31,6 +31,7 @@
                 <th>เวลา</th>
                 <th>สถานที่</th>
                 <th>สถานะ</th>
+                <th>QR Code</th>
                 <th>การดำเนินการ</th>
             </tr>
         </thead>
@@ -48,6 +49,21 @@
                     {% else %}
                         <div class="ui label">ปิด</div>
                     {% endif %}
+                </td>
+                <td class="center aligned">
+                    <div class="ui small buttons">
+                        <a href="{{ url_for('meeting_qrcode', meeting_id=meeting.id) }}" 
+                        class="ui icon button" 
+                        data-tooltip="ดู QR Code"
+                        target="_blank">
+                            <i class="qrcode icon"></i>
+                        </a>
+                        <a href="{{ url_for('download_meeting_qrcode', meeting_id=meeting.id) }}" 
+                        class="ui icon button"
+                        data-tooltip="ดาวน์โหลด QR Code">
+                            <i class="download icon"></i>
+                        </a>
+                    </div>
                 </td>
                 <td>
                     <div class="ui small buttons">
@@ -79,7 +95,7 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="7" class="center aligned">ยังไม่มีการประชุม</td>
+                <td colspan="8" class="center aligned">ยังไม่มีการประชุม</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -87,6 +103,39 @@
     
     <!-- Pagination -->
     {{ pagination_macros.render_pagination(meetings, 'admin.meetings') }}
+
+    <!-- เพิ่ม Modal สำหรับแสดง QR Code แบบ popup -->
+    <div class="ui modal" id="qrcodeModal">
+        <i class="close icon"></i>
+        <div class="header">
+            <i class="qrcode icon"></i> QR Code สำหรับลงทะเบียน
+        </div>
+        <div class="image content">
+            <div class="ui medium image">
+                <img id="qrcodeImage" src="">
+            </div>
+            <div class="description">
+                <h3 id="meetingTitle"></h3>
+                <p id="meetingDetails"></p>
+                <div class="ui divider"></div>
+                <p><strong>URL:</strong></p>
+                <div class="ui fluid input">
+                    <input type="text" id="meetingUrl" readonly>
+                </div>
+            </div>
+        </div>
+        <div class="actions">
+            <button class="ui button" onclick="copyMeetingUrl()">
+                <i class="copy icon"></i> คัดลอก URL
+            </button>
+            <a id="downloadQrBtn" href="#" class="ui green button">
+                <i class="download icon"></i> ดาวน์โหลด
+            </a>
+            <div class="ui cancel button">
+                <i class="remove icon"></i> ปิด
+            </div>
+        </div>
+    </div>
 
     <!-- Delete Confirmation Modal -->
     <div class="ui small modal" id="deleteModal">
@@ -115,6 +164,30 @@
 {% block admin_scripts %}
 <script>
 $(document).ready(function() {
+    // Initialize tooltips
+    $('.ui.icon.button[data-tooltip]').popup();
+    
+    function showQRCode(meetingId, meetingTitle) {
+        // Generate QR Code dynamically
+        const baseUrl = window.location.origin + '/register';
+        const registrationUrl = `${baseUrl}/submit/${meetingId}`;
+        
+        // Update modal content
+        $('#meetingTitle').text(meetingTitle);
+        $('#meetingUrl').val(registrationUrl);
+        $('#downloadQrBtn').attr('href', `/meeting/${meetingId}/qrcode/download`);
+        
+        // Show modal
+        $('#qrcodeModal').modal('show');
+    }
+
+    window.copyMeetingUrl = function() {
+        const urlInput = document.getElementById('meetingUrl');
+        urlInput.select();
+        document.execCommand('copy');
+        alert('คัดลอก URL แล้ว');
+    }
+    
     // Handle delete button click
     $('.delete-meeting').on('click', function(e) {
         e.preventDefault();

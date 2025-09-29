@@ -24,54 +24,104 @@
             </p>
         </div>
 
-        <div class="ui segment">
-            <form class="ui form" id="registrationForm" method="POST" action="{{ url_for('register', meeting_id=meeting.id) if meeting else url_for('register') }}">
-                <h3 class="ui dividing header">
-                    <i class="user icon"></i>
-                    ลงทะเบียนเข้าร่วมประชุม
-                </h3>
-                
-                <div class="field">
-                    <label>รหัสพนักงาน <span style="color: gray;">(ไม่ต้องใส่ 0 ด้านหน้า)</span></label>
-                    <div class="ui left icon input">
-                        <i class="id card outline icon"></i>
-                        <input type="text" 
-                               name="emp_id" 
-                               id="emp_id" 
-                               placeholder="กรอกรหัสพนักงาน" 
-                               required 
-                               minlength="6"
-                               pattern="[0-9]{6,}"
-                               title="กรุณากรอกรหัสพนักงานอย่างน้อย 6 หลัก">
+        <div class="ui two column stackable grid">
+            <!-- คอลัมน์ซ้าย: แบบฟอร์มลงทะเบียน -->
+            <div class="ten wide column">
+                <div class="ui segment">
+                    <form class="ui form" id="registrationForm" method="POST" action="{{ url_for('register', meeting_id=meeting.id) if meeting else url_for('register') }}">
+                        <h3 class="ui dividing header">
+                            <i class="user icon"></i>
+                            ลงทะเบียนเข้าร่วมประชุม
+                        </h3>
+                        
+                        <div class="field">
+                            <label>รหัสพนักงาน <span style="color: gray;">(ไม่ต้องใส่ 0 ด้านหน้า)</span></label>
+                            <div class="ui left icon input">
+                                <i class="id card outline icon"></i>
+                                <input type="text" 
+                                       name="emp_id" 
+                                       id="emp_id" 
+                                       placeholder="กรอกรหัสพนักงาน" 
+                                       required 
+                                       minlength="6"
+                                       pattern="[0-9]{6,}"
+                                       title="กรุณากรอกรหัสพนักงานอย่างน้อย 6 หลัก">
+                            </div>
+                        </div>
+                        
+                        <div class="field">
+                            <button class="ui primary large button" type="submit" id="submitBtn">
+                                <i class="sign in alternate icon"></i>
+                                ลงทะเบียน
+                            </button>
+                        </div>
+                        
+                        <div class="ui info message">
+                            <div class="header">หมายเหตุ</div>
+                            <ul class="list">
+                                <li>หากไม่พบข้อมูลในระบบ คุณสามารถกรอกข้อมูลด้วยตนเองได้</li>
+                                <li>ระบบจะป้องกันการลงทะเบียนซ้ำโดยอัตโนมัติ</li>
+                            </ul>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- คอลัมน์ขวา: QR Code -->
+            <div class="six wide column">
+                <div class="ui center aligned segment">
+                    <h4 class="ui header">
+                        <i class="qrcode icon"></i>
+                        <div class="content">
+                            สแกน QR Code
+                            <div class="sub header">เพื่อลงทะเบียนผ่านมือถือ</div>
+                        </div>
+                    </h4>
+                    <div class="ui divider"></div>
+                    
+                    <!-- QR Code Image -->
+                    <div style="padding: 10px; background: #f9f9f9; border-radius: 8px; display: inline-block;">
+                        <img src="data:image/png;base64,{{ get_meeting_qr(meeting.id) }}" 
+                             alt="QR Code สำหรับลงทะเบียน"
+                             style="max-width: 200px; width: 100%; height: auto;">
                     </div>
+                    
+                    <div class="ui divider"></div>
+                    
+                    <!-- QR Code Actions -->
+                    <div class="ui small buttons">
+                        <a href="{{ url_for('meeting_qrcode', meeting_id=meeting.id) }}" 
+                           class="ui button" target="_blank">
+                            <i class="expand icon"></i> ดูขนาดใหญ่
+                        </a>
+                        <a href="{{ url_for('download_meeting_qrcode', meeting_id=meeting.id) }}" 
+                           class="ui green button">
+                            <i class="download icon"></i> ดาวน์โหลด
+                        </a>
+                    </div>
+                    
+                    <div class="ui divider"></div>
+                    
+                    <p style="color: #666; font-size: 0.9em;">
+                        <i class="info circle icon"></i>
+                        แชร์ QR Code นี้ให้ผู้เข้าร่วมประชุม<br>
+                        เพื่อลงทะเบียนได้สะดวกรวดเร็ว
+                    </p>
                 </div>
-                
-                <div class="field">
-                    <button class="ui primary large button" type="submit" id="submitBtn">
-                        <i class="sign in alternate icon"></i>
-                        ลงทะเบียน
-                    </button>
-                </div>
-                
-                <div class="ui info message">
-                    <div class="header">หมายเหตุ</div>
-                    <ul class="list">
-                        <li>หากไม่พบข้อมูลในระบบ คุณสามารถกรอกข้อมูลด้วยตนเองได้</li>
-                        <li>ระบบจะป้องกันการลงทะเบียนซ้ำโดยอัตโนมัติ</li>
-                    </ul>
-                </div>
-                <div class="ui divider"></div>
-    
-                <div class="ui secondary menu">
-                    <a class="item" href="{{ url_for('auth.login') }}">
-                        <i class="user icon"></i> เข้าสู่ระบบผู้จัดการประชุม
-                    </a>
-                    <a class="item" href="{{ url_for('admin.login') }}">
-                        <i class="shield icon"></i> Admin
-                    </a>
-                </div>
-            </form>
+            </div>
         </div>
+        
+        <div class="ui divider"></div>
+
+        <div class="ui secondary menu">
+            <a class="item" href="{{ url_for('auth.login') }}">
+                <i class="user icon"></i> เข้าสู่ระบบผู้จัดการประชุม
+            </a>
+            <a class="item" href="{{ url_for('admin.login') }}">
+                <i class="shield icon"></i> Admin
+            </a>
+        </div>
+        
     {% else %}
         <div class="ui warning message">
             <div class="header">
@@ -82,6 +132,20 @@
         </div>
     {% endif %}
 </div>
+
+<style>
+    /* Responsive adjustments */
+    @media only screen and (max-width: 767px) {
+        .ui.stackable.grid > .column:not(.row) {
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+        
+        .ui.stackable.grid > .six.wide.column {
+            margin-top: 1em !important;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block extra_js %}
@@ -116,6 +180,9 @@
                 return false;
             }
         });
+        
+        // Initialize tooltips if any
+        $('.ui.button').popup();
     });
 </script>
 {% endblock %}

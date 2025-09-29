@@ -1,0 +1,83 @@
+<!-- templates/qrcode_display.html -->
+{% extends "base.html" %}
+
+{% block title %}QR Code - {{ meeting.topic }}{% endblock %}
+
+{% block content %}
+<div class="ui container">
+    <div class="ui center aligned segment">
+        <h1 class="ui header">
+            <i class="qrcode icon"></i>
+            <div class="content">
+                QR Code สำหรับลงทะเบียน
+                <div class="sub header">{{ meeting.topic }}</div>
+            </div>
+        </h1>
+        
+        <div class="ui divider"></div>
+        
+        <div class="ui basic segment">
+            <img src="data:image/png;base64,{{ qr_image }}" 
+                 alt="QR Code for registration" 
+                 style="max-width: 400px; width: 100%; height: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px;">
+        </div>
+        
+        <div class="ui info message">
+            <div class="header">ข้อมูลการประชุม</div>
+            <div class="content">
+                <p><i class="calendar icon"></i> วันที่: {{ meeting.meeting_date.strftime('%d/%m/%Y') }}</p>
+                <p><i class="clock icon"></i> เวลา: {{ meeting.start_time.strftime('%H:%M') }} - {{ meeting.end_time.strftime('%H:%M') }}</p>
+                <p><i class="map marker icon"></i> สถานที่: ห้อง {{ meeting.room }} ชั้น {{ meeting.floor }} อาคาร {{ meeting.building }}</p>
+            </div>
+        </div>
+        
+        <div class="ui basic segment">
+            <p><strong>URL สำหรับลงทะเบียน:</strong></p>
+            <div class="ui input fluid">
+                <input type="text" value="{{ registration_url }}" readonly id="urlInput">
+            </div>
+            <button class="ui button primary" onclick="copyURL()" style="margin-top: 10px;">
+                <i class="copy icon"></i> คัดลอก URL
+            </button>
+        </div>
+        
+        <div class="ui buttons">
+            <a href="{{ url_for('download_meeting_qrcode', meeting_id=meeting.id) }}" class="ui green button">
+                <i class="download icon"></i> ดาวน์โหลด QR Code
+            </a>
+            <button class="ui blue button" onclick="window.print()">
+                <i class="print icon"></i> พิมพ์ QR Code
+            </button>
+        </div>
+        
+        <div class="ui divider"></div>
+        
+        <a href="{{ url_for('organizer.view_registrations', meeting_id=meeting.id) }}" class="ui button">
+            <i class="arrow left icon"></i> กลับ
+        </a>
+    </div>
+</div>
+
+<style>
+    @media print {
+        .ui.menu, .ui.buttons, .ui.button {
+            display: none !important;
+        }
+        .ui.container {
+            width: 100% !important;
+        }
+    }
+</style>
+
+<script>
+function copyURL() {
+    var urlInput = document.getElementById('urlInput');
+    urlInput.select();
+    urlInput.setSelectionRange(0, 99999);
+    document.execCommand('copy');
+    
+    // Show notification
+    alert('คัดลอก URL แล้ว');
+}
+</script>
+{% endblock %}

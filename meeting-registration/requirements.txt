@@ -17,3 +17,5 @@ requests
 flask_migrate
 Werkzeug
 rq
+Pillow
+qrcodegen
