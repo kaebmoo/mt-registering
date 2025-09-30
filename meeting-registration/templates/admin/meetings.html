@@ -76,13 +76,22 @@
                             <i class="edit icon"></i>
                         </a>
                         <a href="{{ url_for('admin.toggle_meeting', meeting_id=meeting.id) }}" 
-                           class="ui button" title="{% if meeting.is_active %}ปิด{% else %}เปิด{% endif %}">
-                            {% if meeting.is_active %}
-                                <i class="lock icon"></i>
-                            {% else %}
-                                <i class="unlock icon"></i>
-                            {% endif %}
+                            class="ui button" 
+                            title="{% if meeting.is_active %}ปิดการลงทะเบียน{% else %}เปิดการลงทะเบียน{% endif %}">
+                                {% if meeting.is_active %}
+                                    <i class="toggle on icon green"></i>
+                                {% else %}
+                                    <i class="toggle off icon"></i>
+                                {% endif %}
                         </a>
+                        {% if not meeting.is_active %}
+                        <a href="{{ url_for('admin.set_exclusive_meeting', meeting_id=meeting.id) }}" 
+                            class="ui orange button" 
+                            title="เปิดเฉพาะการประชุมนี้ (ปิดอื่นๆ ทั้งหมด)"
+                            onclick="return confirm('ต้องการเปิดเฉพาะการประชุมนี้และปิดการประชุมอื่นทั้งหมดหรือไม่?')">
+                                <i class="star icon"></i>
+                        </a>
+                        {% endif %}
                         <button class="ui red button delete-meeting" 
                             data-meeting-id="{{ meeting.id }}"
                             data-meeting-topic="{{ meeting.topic }}"
@@ -100,6 +109,18 @@
             {% endfor %}
         </tbody>
     </table>
+
+    <!-- เพิ่ม Note ด้านบนตาราง -->
+    <div class="ui info message">
+        <i class="info circle icon"></i>
+        <div class="content">
+            <div class="header">การจัดการสถานะการประชุม</div>
+            <ul class="list">
+                <li><i class="toggle on icon"></i> = เปิด/ปิดการลงทะเบียน (สามารถเปิดหลายการประชุมพร้อมกัน)</li>
+                <li><i class="star icon"></i> = เปิดเฉพาะการประชุมนี้ และปิดการประชุมอื่นทั้งหมด</li>
+            </ul>
+        </div>
+    </div>
     
     <!-- Pagination -->
     {{ pagination_macros.render_pagination(meetings, 'admin.meetings') }}

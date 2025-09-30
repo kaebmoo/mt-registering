@@ -132,8 +132,6 @@ def create_meeting():
     """Create new meeting"""
     if request.method == 'POST':
         try:
-            # Deactivate all other meetings
-            Meeting.query.update({Meeting.is_active: False})
             
             meeting = Meeting(
                 topic=request.form.get('topic'),
@@ -245,19 +243,33 @@ def delete_meeting(meeting_id):
 @admin_bp.route('/meetings/<int:meeting_id>/toggle')
 @login_required
 def toggle_meeting(meeting_id):
-    """Toggle meeting active status"""
+    """Toggle meeting active status - อนุญาตให้เปิดหลายการประชุมพร้อมกัน"""
     meeting = Meeting.query.get_or_404(meeting_id)
     
-    if meeting.is_active:
-        meeting.is_active = False
-    else:
-        # Deactivate all other meetings
-        Meeting.query.update({Meeting.is_active: False})
-        meeting.is_active = True
+    meeting.is_active = not meeting.is_active
     
     db.session.commit()
     cache.delete('active_meeting')
     flash('อัปเดตสถานะการประชุมแล้ว', 'success')
+    return redirect(url_for('admin.meetings'))
+
+# เพิ่ม route ใหม่สำหรับเปิดเฉพาะการประชุมเดียว (ถ้าต้องการ)
+@admin_bp.route('/meetings/<int:meeting_id>/set_exclusive')
+@login_required
+def set_exclusive_meeting(meeting_id):
+    """เปิดเฉพาะการประชุมนี้ และปิดทั้งหมด"""
+    meeting = Meeting.query.get_or_404(meeting_id)
+    
+    # ปิดการประชุมทั้งหมด
+    Meeting.query.update({Meeting.is_active: False})
+    
+    # เปิดเฉพาะการประชุมนี้
+    meeting.is_active = True
+    
+    db.session.commit()
+    cache.delete('active_meeting')
+    
+    flash(f'เปิดเฉพาะการประชุม "{meeting.topic}" และปิดการประชุมอื่นทั้งหมด', 'success')
     return redirect(url_for('admin.meetings'))
 
 @admin_bp.route('/registrations/<int:meeting_id>')
