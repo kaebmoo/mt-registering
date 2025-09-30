@@ -88,9 +88,9 @@
                             <i class="map marker alternate icon"></i>
                             <div class="content">
                                 <strong>สถานที่ (Onsite):</strong> 
-                                ห้อง{{ meeting.room }}
+                                ห้อง {{ meeting.room }}
                                 {% if meeting.floor %} ชั้น {{ meeting.floor }}{% endif %}
-                                {% if meeting.building %} {{ meeting.building }}{% endif %}
+                                {% if meeting.building %} อาคาร {{ meeting.building }}{% endif %}
                             </div>
                         </div>
                     {% endif %}
@@ -114,9 +114,9 @@
                             <i class="map marker alternate icon"></i>
                             <div class="content">
                                 <strong>สถานที่:</strong> 
-                                ห้อง{{ meeting.room }}
+                                ห้อง {{ meeting.room }}
                                 {% if meeting.floor %} ชั้น {{ meeting.floor }}{% endif %}
-                                {% if meeting.building %} {{ meeting.building }}{% endif %}
+                                {% if meeting.building %} อาคาร {{ meeting.building }}{% endif %}
                             </div>
                         </div>
                     {% endif %}
