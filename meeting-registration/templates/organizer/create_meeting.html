@@ -126,36 +126,88 @@
         </a>
     </form>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-$(document).ready(function() {
-    // Initialize dropdown
-    $('.ui.dropdown').dropdown();
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded - initializing meeting form');
     
-    // Meeting type field toggle
-    $('#meeting_type').on('change', function() {
-        var type = $(this).val();
+    // Initialize Semantic UI dropdown ถ้ามี jQuery
+    if (typeof $ !== 'undefined' && $.fn.dropdown) {
+        $('.ui.dropdown').dropdown();
+    }
+    
+    // Meeting type field toggle - ใช้ vanilla JavaScript
+    var meetingTypeSelect = document.getElementById('meeting_type');
+    var onsiteFields = document.getElementById('onsite_fields');
+    var onlineFields = document.getElementById('online_fields');
+    
+    function toggleMeetingFields() {
+        var type = meetingTypeSelect.value;
+        console.log('Meeting type changed to:', type);
         
         if (type === 'onsite') {
-            $('#onsite_fields').show();
-            $('#online_fields').hide();
-            $('#onsite_fields input').prop('required', true);
-            $('#online_fields input').prop('required', false);
+            // แสดง onsite, ซ่อน online
+            onsiteFields.style.display = 'block';
+            onlineFields.style.display = 'none';
+            
+            // ตั้ง required fields
+            onsiteFields.querySelectorAll('input').forEach(function(input) {
+                input.required = true;
+            });
+            onlineFields.querySelectorAll('input').forEach(function(input) {
+                input.required = false;
+            });
+            
         } else if (type === 'online') {
-            $('#onsite_fields').hide();
-            $('#online_fields').show();
-            $('#onsite_fields input').prop('required', false);
-            $('input[name="meeting_url"]').prop('required', true);
+            // ซ่อน onsite, แสดง online
+            onsiteFields.style.display = 'none';
+            onlineFields.style.display = 'block';
+            
+            // ตั้ง required fields
+            onsiteFields.querySelectorAll('input').forEach(function(input) {
+                input.required = false;
+            });
+            document.querySelector('input[name="meeting_url"]').required = true;
+            
         } else { // hybrid
-            $('#onsite_fields').show();
-            $('#online_fields').show();
-            $('#onsite_fields input').prop('required', false);
-            $('#online_fields input').prop('required', false);
+            // แสดงทั้งสองอย่าง
+            onsiteFields.style.display = 'block';
+            onlineFields.style.display = 'block';
+            
+            // ไม่บังคับ required
+            onsiteFields.querySelectorAll('input').forEach(function(input) {
+                input.required = false;
+            });
+            onlineFields.querySelectorAll('input').forEach(function(input) {
+                input.required = false;
+            });
         }
-    });
+    }
     
-    // Trigger change on page load
-    $('#meeting_type').trigger('change');
+    // เพิ่ม event listener
+    if (meetingTypeSelect) {
+        meetingTypeSelect.addEventListener('change', toggleMeetingFields);
+        
+        // เรียกครั้งแรกเพื่อตั้งค่าเริ่มต้น
+        toggleMeetingFields();
+    }
+    
+    // Fallback สำหรับกรณีที่มี jQuery
+    if (typeof $ !== 'undefined') {
+        $(document).ready(function() {
+            console.log('jQuery ready - reinitializing');
+            
+            // Initialize checkbox
+            $('.ui.checkbox').checkbox();
+            
+            // Backup jQuery version
+            $('#meeting_type').on('change', function() {
+                toggleMeetingFields();
+            });
+        });
+    }
 });
 </script>
 {% endblock %}
