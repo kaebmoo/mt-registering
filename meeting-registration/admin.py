@@ -143,6 +143,12 @@ def create_meeting():
                 room=request.form.get('room'),
                 floor=request.form.get('floor'),
                 building=request.form.get('building'),
+                # เพิ่ม fields ใหม่
+                meeting_type=request.form.get('meeting_type', 'onsite'),
+                meeting_url=request.form.get('meeting_url'),
+                meeting_id=request.form.get('meeting_id'),
+                meeting_password=request.form.get('meeting_password'),
+                additional_info=request.form.get('additional_info'),
                 is_active=True
             )
             
@@ -176,6 +182,12 @@ def edit_meeting(meeting_id):
             meeting.room = request.form.get('room')
             meeting.floor = request.form.get('floor')
             meeting.building = request.form.get('building')
+            # อัพเดท fields ใหม่
+            meeting.meeting_type = request.form.get('meeting_type', 'onsite')
+            meeting.meeting_url = request.form.get('meeting_url')
+            meeting.meeting_id = request.form.get('meeting_id')
+            meeting.meeting_password = request.form.get('meeting_password')
+            meeting.additional_info = request.form.get('additional_info')
             
             db.session.commit()
             cache.delete('active_meeting')

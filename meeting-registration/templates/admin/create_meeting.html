@@ -13,6 +13,8 @@
     </h1>
 
     <form class="ui form" method="POST">
+        <h4 class="ui dividing header">ข้อมูลพื้นฐาน</h4>
+        
         <div class="field">
             <label>หัวข้อการประชุม</label>
             <input type="text" name="topic" required>
@@ -33,19 +35,58 @@
             </div>
         </div>
         
-        <div class="three fields">
-            <div class="field">
-                <label>ห้องประชุม</label>
-                <input type="text" name="room" required>
+        <h4 class="ui dividing header">สถานที่ประชุม</h4>
+        
+        <div class="field">
+            <label>รูปแบบการประชุม</label>
+            <select name="meeting_type" class="ui dropdown" id="meeting_type">
+                <option value="onsite">ณ สถานที่ (Onsite)</option>
+                <option value="online">ออนไลน์ (Online)</option>
+                <option value="hybrid">ผสมผสาน (Hybrid)</option>
+            </select>
+        </div>
+        
+        <div id="onsite_fields">
+            <div class="three fields">
+                <div class="field">
+                    <label>ห้องประชุม</label>
+                    <input type="text" name="room">
+                </div>
+                <div class="field">
+                    <label>ชั้น</label>
+                    <input type="text" name="floor">
+                </div>
+                <div class="field">
+                    <label>อาคาร</label>
+                    <input type="text" name="building">
+                </div>
             </div>
+        </div>
+        
+        <div id="online_fields" style="display: none;">
+            <h4 class="ui dividing header">ข้อมูลการประชุมออนไลน์</h4>
+            
             <div class="field">
-                <label>ชั้น</label>
-                <input type="text" name="floor" required>
+                <label>Link การประชุม (Zoom/Teams/Google Meet)</label>
+                <input type="url" name="meeting_url" placeholder="https://zoom.us/j/123456789">
+                <small class="ui grey text">กรอก URL เต็มของการประชุมออนไลน์</small>
             </div>
-            <div class="field">
-                <label>อาคาร</label>
-                <input type="text" name="building" required>
+            
+            <div class="two fields">
+                <div class="field">
+                    <label>Meeting ID</label>
+                    <input type="text" name="meeting_id" placeholder="123-456-789">
+                </div>
+                <div class="field">
+                    <label>Password</label>
+                    <input type="text" name="meeting_password" placeholder="abc123">
+                </div>
             </div>
+        </div>
+        
+        <div class="field">
+            <label>ข้อมูลเพิ่มเติม</label>
+            <textarea name="additional_info" rows="3" placeholder="เช่น วาระการประชุม, เอกสารประกอบ, หมายเหตุอื่นๆ"></textarea>
         </div>
         
         <button class="ui primary button" type="submit">
@@ -56,4 +97,42 @@
         </a>
     </form>
 
+{% endblock %}
+
+{% block admin_scripts %}
+<script>
+$(document).ready(function() {
+    console.log('Meeting form script loaded');
+    
+    // Meeting type field toggle
+    $('#meeting_type').on('change', function() {
+        var type = $(this).val();
+        console.log('Meeting type changed to:', type);
+        
+        if (type === 'onsite') {
+            $('#onsite_fields').show();
+            $('#online_fields').hide();
+            // Make onsite fields required
+            $('#onsite_fields input').prop('required', true);
+            $('#online_fields input').prop('required', false);
+        } else if (type === 'online') {
+            $('#onsite_fields').hide();
+            $('#online_fields').show();
+            // Make online URL required
+            $('#onsite_fields input').prop('required', false);
+            $('#online_fields input[name="meeting_url"]').prop('required', true);
+            $('#online_fields input[name="meeting_id"], #online_fields input[name="meeting_password"]').prop('required', false);
+        } else { // hybrid
+            $('#onsite_fields').show();
+            $('#online_fields').show();
+            // Make all fields optional for hybrid
+            $('#onsite_fields input').prop('required', false);
+            $('#online_fields input').prop('required', false);
+        }
+    });
+    
+    // Trigger change on page load to set initial state
+    $('#meeting_type').trigger('change');
+});
+</script>
 {% endblock %}

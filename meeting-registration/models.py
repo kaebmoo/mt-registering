@@ -111,6 +111,14 @@ class Meeting(db.Model):
     room = db.Column(db.String(100))
     floor = db.Column(db.String(50))
     building = db.Column(db.String(255))
+
+    # เพิ่ม fields ใหม่สำหรับ online meeting
+    meeting_type = db.Column(db.String(50), default='onsite')  # onsite, online, hybrid
+    meeting_url = db.Column(db.Text)  # Zoom/Teams/Google Meet URL
+    meeting_id = db.Column(db.String(100))  # Meeting ID
+    meeting_password = db.Column(db.String(100))  # Meeting Password
+    additional_info = db.Column(db.Text)  # ข้อมูลเพิ่มเติมอื่นๆ
+    
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
