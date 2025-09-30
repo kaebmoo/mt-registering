@@ -68,7 +68,7 @@
             
             <div class="field">
                 <label>Link การประชุม (Zoom/Teams/Google Meet)</label>
-                <input type="url" name="meeting_url" value="{{ meeting.meeting_url }}" placeholder="https://zoom.us/j/123456789">
+                <input type="text" name="meeting_url" id="meeting_url" value="{{ meeting.meeting_url }}" placeholder="https://zoom.us/j/123456789">
                 <small class="ui grey text">กรอก URL เต็มของการประชุมออนไลน์</small>
             </div>
             
@@ -131,6 +131,16 @@ $(document).ready(function() {
         }
     });
     
+    $('form').on('submit', function(e) {
+        var type = $('#meeting_type').val();
+        var url = $('#meeting_url').val().trim();
+
+        if (type === 'online' && url === '') {
+            e.preventDefault();
+            alert('กรุณากรอก Link การประชุม');
+            $('#meeting_url').focus();
+        }
+    });
     // Trigger change on page load to set initial state
     $('#meeting_type').trigger('change');
 });
