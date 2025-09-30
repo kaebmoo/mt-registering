@@ -796,8 +796,8 @@ MIT License - See LICENSE file for details
 
 ## Credits
 
-Developed by Managerial Accounting Department / kaebmoo
-Based on original PHP system by thanyapat04
+Developed by Managerial Accounting Department / [kaebmoo](https://github.com/kaebmoo/mt-registering)
+Based on original PHP system by [thanyapat04](https://github.com/thanyapat04/mt-registering)
 
 ---
 Last Updated: 2025
