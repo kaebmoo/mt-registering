@@ -42,7 +42,11 @@
                 <td>{{ meeting.topic }}</td>
                 <td>{{ meeting.meeting_date.strftime('%d/%m/%Y') }}</td>
                 <td>{{ meeting.start_time.strftime('%H:%M') }} - {{ meeting.end_time.strftime('%H:%M') }}</td>
-                <td>ห้อง {{ meeting.room }} ชั้น {{ meeting.floor }} อาคาร {{ meeting.building }}</td>
+                {% if meeting.meeting_type == 'online' %}
+                    <td>ประชุมออนไลน์</td>
+                {% else %}
+                    <td>ห้อง {{ meeting.room }} ชั้น {{ meeting.floor }} อาคาร {{ meeting.building }}</td>
+                {% endif %}
                 <td>
                     {% if meeting.is_active %}
                         <div class="ui green label">เปิดลงทะเบียน</div>

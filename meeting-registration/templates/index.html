@@ -5,30 +5,140 @@
 {% block content %}
 <div class="ui container">
     {% if meeting %}
-        <div class="ui raised blue segment">
+        <!-- Meeting Header with Type Badge -->
+        <div class="ui raised segment">
             <h2 class="ui header">
                 <i class="calendar alternate outline icon"></i>
                 <div class="content">
-                    หัวข้อการประชุม: {{ meeting.topic }}
-                    <div class="sub header">
-                        <i class="clock outline icon"></i> วันที่: {{ meeting.meeting_date.strftime('%d/%m/%Y') }}
-                        เวลา: {{ meeting.start_time.strftime('%H:%M') }} - {{ meeting.end_time.strftime('%H:%M') }}
+                    {{ meeting.topic }}
+                    
+                    <!-- Meeting Type Badge -->
+                    {% if meeting.meeting_type == 'online' %}
+                        <div class="ui green label" style="margin-left: 10px;">
+                            <i class="video icon"></i> ประชุมออนไลน์
+                        </div>
+                    {% elif meeting.meeting_type == 'hybrid' %}
+                        <div class="ui blue label" style="margin-left: 10px;">
+                            <i class="arrows alternate horizontal icon"></i> ประชุมแบบผสมผสาน
+                        </div>
+                    {% else %}
+                        <div class="ui gray label" style="margin-left: 10px;">
+                            <i class="building icon"></i> ประชุม ณ สถานที่
+                        </div>
+                    {% endif %}
+                    
+                    <div class="sub header" style="margin-top: 10px;">
+                        <i class="calendar outline icon"></i> 
+                        วันที่: {{ meeting.meeting_date.strftime('%d/%m/%Y') }}
+                        <span style="margin-left: 20px;">
+                            <i class="clock outline icon"></i> 
+                            เวลา: {{ meeting.start_time.strftime('%H:%M') }} - {{ meeting.end_time.strftime('%H:%M') }} น.
+                        </span>
                     </div>
                 </div>
             </h2>
-            <p>
-                <i class="map marker alternate icon"></i>
-                <strong>สถานที่:</strong> ห้องประชุม {{ meeting.room }} 
-                ชั้น {{ meeting.floor }} 
-                อาคาร {{ meeting.building }}
-            </p>
+            
+            <!-- Meeting Location/Platform Info -->
+            <div class="ui divider"></div>
+            
+            <div class="ui list">
+                {% if meeting.meeting_type == 'online' %}
+                    <div class="item">
+                        <i class="video icon"></i>
+                        <div class="content">
+                            <strong>รูปแบบ:</strong> 
+                            <span class="ui green text">ประชุมออนไลน์ผ่านระบบ Video Conference</span>
+                        </div>
+                    </div>
+                    
+                    {% if meeting.meeting_url %}
+                        <div class="item">
+                            <i class="linkify icon"></i>
+                            <div class="content">
+                                <strong>Platform:</strong> 
+                                {% if 'zoom' in meeting.meeting_url.lower() %}
+                                    Zoom Meeting
+                                {% elif 'teams' in meeting.meeting_url.lower() %}
+                                    Microsoft Teams
+                                {% elif 'meet.google' in meeting.meeting_url.lower() %}
+                                    Google Meet
+                                {% else %}
+                                    Video Conference
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="ui info message" style="margin-top: 15px;">
+                        <i class="info circle icon"></i>
+                        ลิงก์เข้าร่วมประชุมจะแสดงหลังลงทะเบียนเรียบร้อยแล้ว
+                    </div>
+                    
+                {% elif meeting.meeting_type == 'hybrid' %}
+                    <div class="item">
+                        <i class="arrows alternate horizontal icon"></i>
+                        <div class="content">
+                            <strong>รูปแบบ:</strong> 
+                            <span class="ui blue text">ประชุมแบบผสมผสาน (Onsite + Online)</span>
+                        </div>
+                    </div>
+                    
+                    {% if meeting.room %}
+                        <div class="item">
+                            <i class="map marker alternate icon"></i>
+                            <div class="content">
+                                <strong>สถานที่ (Onsite):</strong> 
+                                ห้อง{{ meeting.room }}
+                                {% if meeting.floor %} ชั้น {{ meeting.floor }}{% endif %}
+                                {% if meeting.building %} {{ meeting.building }}{% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="item">
+                        <i class="video icon"></i>
+                        <div class="content">
+                            <strong>Online Option:</strong> 
+                            มีระบบ Video Conference สำหรับผู้ที่ไม่สะดวกเดินทาง
+                        </div>
+                    </div>
+                    
+                    <div class="ui info message" style="margin-top: 15px;">
+                        <i class="info circle icon"></i>
+                        สามารถเลือกเข้าร่วมได้ทั้งแบบ Onsite และ Online (ลิงก์จะแสดงหลังลงทะเบียน)
+                    </div>
+                    
+                {% else %}
+                    {% if meeting.room %}
+                        <div class="item">
+                            <i class="map marker alternate icon"></i>
+                            <div class="content">
+                                <strong>สถานที่:</strong> 
+                                ห้อง{{ meeting.room }}
+                                {% if meeting.floor %} ชั้น {{ meeting.floor }}{% endif %}
+                                {% if meeting.building %} {{ meeting.building }}{% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endif %}
+                
+                {% if meeting.additional_info and meeting.additional_info != 'None' %}
+                    <div class="item">
+                        <i class="info circle icon"></i>
+                        <div class="content">
+                            <strong>ข้อมูลเพิ่มเติม:</strong> {{ meeting.additional_info }}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
         </div>
 
         <div class="ui two column stackable grid">
             <!-- คอลัมน์ซ้าย: แบบฟอร์มลงทะเบียน -->
             <div class="ten wide column">
                 <div class="ui segment">
-                    <form class="ui form" id="registrationForm" method="POST" action="{{ url_for('register', meeting_id=meeting.id) if meeting else url_for('register') }}">
+                    <form class="ui form" id="registrationForm" method="POST" 
+                          action="{{ url_for('register', meeting_id=meeting.id) if meeting else url_for('register') }}">
                         <h3 class="ui dividing header">
                             <i class="user icon"></i>
                             ลงทะเบียนเข้าร่วมประชุม
@@ -61,6 +171,11 @@
                             <ul class="list">
                                 <li>หากไม่พบข้อมูลในระบบ คุณสามารถกรอกข้อมูลด้วยตนเองได้</li>
                                 <li>ระบบจะป้องกันการลงทะเบียนซ้ำโดยอัตโนมัติ</li>
+                                {% if meeting.meeting_type == 'online' %}
+                                    <li><strong>สำหรับการประชุมออนไลน์:</strong> ลิงก์จะแสดงหลังลงทะเบียนสำเร็จ</li>
+                                {% elif meeting.meeting_type == 'hybrid' %}
+                                    <li><strong>สำหรับผู้เข้าร่วมออนไลน์:</strong> ลิงก์จะแสดงหลังลงทะเบียนสำเร็จ</li>
+                                {% endif %}
                             </ul>
                         </div>
                     </form>
@@ -80,7 +195,8 @@
                     <div class="ui divider"></div>
                     
                     <!-- QR Code Image -->
-                    <div style="padding: 10px; background: #f9f9f9; border-radius: 8px; display: inline-block;">
+                    <div style="padding: 10px; background: white; border: 1px solid #e0e0e0; 
+                                border-radius: 8px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                         <img src="data:image/png;base64,{{ get_meeting_qr(meeting.id) }}" 
                              alt="QR Code สำหรับลงทะเบียน"
                              style="max-width: 200px; width: 100%; height: auto;">
@@ -91,22 +207,38 @@
                     <!-- QR Code Actions -->
                     <div class="ui small buttons">
                         <a href="{{ url_for('meeting_qrcode', meeting_id=meeting.id) }}" 
-                           class="ui button" target="_blank">
+                           class="ui button" target="_blank"
+                           data-tooltip="ดู QR Code ขนาดใหญ่">
                             <i class="expand icon"></i> ดูขนาดใหญ่
                         </a>
                         <a href="{{ url_for('download_meeting_qrcode', meeting_id=meeting.id) }}" 
-                           class="ui green button">
+                           class="ui green button"
+                           data-tooltip="ดาวน์โหลด QR Code">
                             <i class="download icon"></i> ดาวน์โหลด
                         </a>
                     </div>
                     
                     <div class="ui divider"></div>
                     
-                    <p style="color: #666; font-size: 0.9em;">
-                        <i class="info circle icon"></i>
-                        แชร์ QR Code นี้ให้ผู้เข้าร่วมประชุม<br>
-                        เพื่อลงทะเบียนได้สะดวกรวดเร็ว
-                    </p>
+                    <div style="color: #666; font-size: 0.9em;">
+                        <p>
+                            <i class="mobile alternate icon"></i>
+                            แชร์ QR Code นี้ให้ผู้เข้าร่วมประชุม<br>
+                            เพื่อลงทะเบียนได้สะดวกรวดเร็ว
+                        </p>
+                        
+                        {% if meeting.meeting_type == 'online' %}
+                        <div class="ui tiny green message">
+                            <i class="laptop icon"></i>
+                            ประชุมออนไลน์ - ไม่ต้องเดินทาง
+                        </div>
+                        {% elif meeting.meeting_type == 'hybrid' %}
+                        <div class="ui tiny blue message">
+                            <i class="arrows alternate horizontal icon"></i>
+                            เลือกได้ทั้ง Onsite/Online
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
@@ -114,6 +246,9 @@
         <div class="ui divider"></div>
 
         <div class="ui secondary menu">
+            <a class="item" href="{{ url_for('index') }}">
+                <i class="home icon"></i> หน้าแรก
+            </a>
             <a class="item" href="{{ url_for('auth.login') }}">
                 <i class="user icon"></i> เข้าสู่ระบบผู้จัดการประชุม
             </a>
@@ -130,10 +265,38 @@
             </div>
             <p>กรุณาติดต่อผู้ดูแลระบบ</p>
         </div>
+        
+        <div class="ui secondary menu">
+            <a class="item" href="{{ url_for('index') }}">
+                <i class="home icon"></i> หน้าแรก
+            </a>
+            <a class="item" href="{{ url_for('admin.login') }}">
+                <i class="shield icon"></i> Admin
+            </a>
+        </div>
     {% endif %}
 </div>
 
 <style>
+    /* Enhanced styling */
+    .ui.raised.segment {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+    }
+    
+    .ui.header .ui.label {
+        font-weight: 500;
+        vertical-align: middle;
+    }
+    
+    .ui.list .item {
+        padding: 0.5em 0;
+    }
+    
+    .ui.tiny.message {
+        padding: 0.5em;
+        margin: 0.5em 0;
+    }
+    
     /* Responsive adjustments */
     @media only screen and (max-width: 767px) {
         .ui.stackable.grid > .column:not(.row) {
@@ -144,6 +307,18 @@
         .ui.stackable.grid > .six.wide.column {
             margin-top: 1em !important;
         }
+        
+        .ui.header .ui.label {
+            display: block;
+            margin: 10px 0 !important;
+            width: fit-content;
+        }
+        
+        .sub.header span {
+            display: block;
+            margin-left: 0 !important;
+            margin-top: 5px;
+        }
     }
 </style>
 {% endblock %}
@@ -153,6 +328,9 @@
     $(document).ready(function() {
         // Auto-focus on emp_id input
         $('#emp_id').focus();
+        
+        // Initialize tooltips
+        $('[data-tooltip]').popup();
         
         // Real-time validation
         $('#emp_id').on('input', function() {
@@ -165,7 +343,7 @@
             if (value.length >= 6) {
                 $(this).parent().removeClass('error');
                 $('#submitBtn').removeClass('disabled');
-            } else {
+            } else if (value.length > 0) {
                 $('#submitBtn').addClass('disabled');
             }
         });
@@ -176,13 +354,20 @@
             if (empId.length < 6) {
                 e.preventDefault();
                 $('#emp_id').parent().addClass('error');
-                alert('รหัสพนักงานต้องมีอย่างน้อย 6 หลัก');
+                
+                // Show error message
+                $(this).addClass('error');
+                $('.ui.form .ui.error.message').remove();
+                $(this).append(
+                    '<div class="ui error message">' +
+                    '<i class="exclamation triangle icon"></i>' +
+                    'รหัสพนักงานต้องมีอย่างน้อย 6 หลัก' +
+                    '</div>'
+                );
+                
                 return false;
             }
         });
-        
-        // Initialize tooltips if any
-        $('.ui.button').popup();
     });
 </script>
 {% endblock %}

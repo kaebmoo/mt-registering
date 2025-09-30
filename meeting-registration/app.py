@@ -9,7 +9,8 @@ from flask_caching import Cache
 import requests
 import logging
 import pytz
-from datetime import datetime, timedelta
+from datetime import datetime, date, timedelta
+import pytz
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_migrate import Migrate
 from flask_limiter import Limiter
@@ -261,17 +262,66 @@ def create_app(config_name=None):
         active_meetings = Meeting.query.filter_by(
             is_active=True,
             is_public=True
-        ).order_by(Meeting.meeting_date, Meeting.start_time).all()
+        ).all()
         
-        if len(active_meetings) == 1:
-            # ถ้ามีประชุมเดียว ใช้หน้าเดิม (single meeting)
-            return render_template('index.html', meeting=active_meetings[0])
-        elif len(active_meetings) > 1:
-            # ถ้ามีหลายประชุม ใช้หน้าใหม่ (multiple meetings)
-            return render_template('index_multi.html', meetings=active_meetings)
+        # จัดกลุ่มการประชุมตามสถานะเวลา
+        bangkok_tz = pytz.timezone('Asia/Bangkok')
+        now = datetime.now(bangkok_tz)
+        today = now.date()
+        
+        ongoing_meetings = []  # กำลังดำเนินการ
+        today_meetings = []    # วันนี้ (ยังไม่เริ่ม)
+        upcoming_meetings = [] # กำลังจะมาถึง (พรุ่งนี้ขึ้นไป)
+        past_meetings = []     # ผ่านไปแล้ว
+        
+        for meeting in active_meetings:
+            # แปลงเวลาให้เป็น datetime สำหรับเปรียบเทียบ
+            meeting_start = bangkok_tz.localize(
+                datetime.combine(meeting.meeting_date, meeting.start_time)
+            )
+            meeting_end = bangkok_tz.localize(
+                datetime.combine(meeting.meeting_date, meeting.end_time)
+            )
+            
+            # ตรวจสอบสถานะ
+            if meeting_end < now:
+                # ผ่านไปแล้ว
+                past_meetings.append(meeting)
+            elif meeting_start <= now <= meeting_end:
+                # กำลังดำเนินการอยู่
+                ongoing_meetings.append(meeting)
+            elif meeting.meeting_date == today:
+                # วันนี้แต่ยังไม่เริ่ม
+                today_meetings.append(meeting)
+            else:
+                # วันอื่นๆ ในอนาคต
+                upcoming_meetings.append(meeting)
+        
+        # เรียงลำดับภายในแต่ละกลุ่ม
+        ongoing_meetings.sort(key=lambda m: m.start_time)
+        today_meetings.sort(key=lambda m: m.start_time)
+        upcoming_meetings.sort(key=lambda m: (m.meeting_date, m.start_time))
+        past_meetings.sort(key=lambda m: (m.meeting_date, m.start_time), reverse=True)
+        
+        # รวมการประชุมตามลำดับความสำคัญ
+        sorted_meetings = ongoing_meetings + today_meetings + upcoming_meetings
+        
+        # ตัดสินใจว่าจะแสดงหน้าไหน
+        if len(sorted_meetings) == 1:
+            return render_template('index.html', meeting=sorted_meetings[0])
+        elif len(sorted_meetings) > 1:
+            return render_template('index_multi.html', 
+                                ongoing_meetings=ongoing_meetings,
+                                today_meetings=today_meetings,
+                                upcoming_meetings=upcoming_meetings,
+                                past_meetings=past_meetings[:5])  # แสดงแค่ 5 รายการล่าสุด
         else:
-            # ไม่มีประชุมเลย
-            return render_template('index_multi.html', meetings=[])
+            # ถ้าไม่มีการประชุมที่ active เลย
+            return render_template('index_multi.html', 
+                                ongoing_meetings=[],
+                                today_meetings=[],
+                                upcoming_meetings=[],
+                                past_meetings=[])
     
     @app.route('/submit/<int:meeting_id>')
     def register_meeting(meeting_id):

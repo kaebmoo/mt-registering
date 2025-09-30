@@ -4,6 +4,21 @@
 
 {% block content %}
 <div class="ui container">
+    <!-- Organizer Menu -->
+    <div class="ui secondary menu">
+        <a class="item" href="{{ url_for('organizer.dashboard') }}">
+            <i class="dashboard icon"></i> Dashboard
+        </a>
+        <div class="right menu">
+            <div class="item">
+                <i class="user icon"></i> {{ current_user.email }}
+            </div>
+            <a class="item" href="{{ url_for('auth.logout') }}">
+                <i class="sign out icon"></i> ออกจากระบบ
+            </a>
+        </div>
+    </div>
+
     <h1 class="ui header">
         <i class="calendar plus icon"></i>
         <div class="content">
@@ -13,6 +28,8 @@
     </h1>
 
     <form class="ui form" method="POST">
+        <h4 class="ui dividing header">ข้อมูลพื้นฐาน</h4>
+        
         <div class="field">
             <label>หัวข้อการประชุม</label>
             <input type="text" name="topic" placeholder="ระบุหัวข้อการประชุม" required>
@@ -33,26 +50,72 @@
             </div>
         </div>
         
-        <div class="three fields">
-            <div class="field">
-                <label>ห้องประชุม</label>
-                <input type="text" name="room" placeholder="ชื่อห้อง" required>
-            </div>
-            <div class="field">
-                <label>ชั้น</label>
-                <input type="text" name="floor" placeholder="ชั้นที่" required>
-            </div>
-            <div class="field">
-                <label>อาคาร</label>
-                <input type="text" name="building" placeholder="ชื่ออาคาร" required>
+        <h4 class="ui dividing header">สถานที่ประชุม</h4>
+        
+        <div class="field">
+            <label>รูปแบบการประชุม</label>
+            <select name="meeting_type" class="ui dropdown" id="meeting_type">
+                <option value="onsite">ณ สถานที่ (Onsite)</option>
+                <option value="online">ออนไลน์ (Online)</option>
+                <option value="hybrid">ผสมผสาน (Hybrid)</option>
+            </select>
+        </div>
+        
+        <div id="onsite_fields">
+            <div class="three fields">
+                <div class="field">
+                    <label>ห้องประชุม</label>
+                    <input type="text" name="room" placeholder="ชื่อห้อง">
+                </div>
+                <div class="field">
+                    <label>ชั้น</label>
+                    <input type="text" name="floor" placeholder="ชั้นที่">
+                </div>
+                <div class="field">
+                    <label>อาคาร</label>
+                    <input type="text" name="building" placeholder="ชื่ออาคาร">
+                </div>
             </div>
         </div>
+        
+        <div id="online_fields" style="display: none;">
+            <h4 class="ui dividing header">ข้อมูลการประชุมออนไลน์</h4>
+            
+            <div class="field">
+                <label>Link การประชุม (Zoom/Teams/Google Meet)</label>
+                <input type="url" name="meeting_url" placeholder="https://zoom.us/j/123456789">
+                <small class="ui grey text">กรอก URL เต็มของการประชุมออนไลน์</small>
+            </div>
+            
+            <div class="two fields">
+                <div class="field">
+                    <label>Meeting ID</label>
+                    <input type="text" name="meeting_id" placeholder="123-456-789">
+                </div>
+                <div class="field">
+                    <label>Password</label>
+                    <input type="text" name="meeting_password" placeholder="abc123">
+                </div>
+            </div>
+        </div>
+        
+        <div class="field">
+            <label>ข้อมูลเพิ่มเติม</label>
+            <textarea name="additional_info" rows="3" placeholder="เช่น วาระการประชุม, เอกสารประกอบ, หมายเหตุอื่นๆ"></textarea>
+        </div>
+        
+        <h4 class="ui dividing header">ตั้งค่าการลงทะเบียน</h4>
         
         <div class="field">
             <div class="ui checkbox">
                 <input type="checkbox" name="is_public" checked>
                 <label>เปิดให้ทุกคนลงทะเบียนได้ (สาธารณะ)</label>
             </div>
+            <p class="ui small grey text">
+                <i class="info circle icon"></i>
+                หากเลือกสาธารณะ: การประชุมจะแสดงในหน้าแรกให้ทุกคนเห็นและลงทะเบียนได้<br>
+                หากไม่เลือก: เฉพาะผู้ที่มี link โดยตรงหรือ QR Code เท่านั้นที่จะลงทะเบียนได้
+            </p>
         </div>
         
         <button class="ui primary button" type="submit">
@@ -63,4 +126,36 @@
         </a>
     </form>
 </div>
+
+<script>
+$(document).ready(function() {
+    // Initialize dropdown
+    $('.ui.dropdown').dropdown();
+    
+    // Meeting type field toggle
+    $('#meeting_type').on('change', function() {
+        var type = $(this).val();
+        
+        if (type === 'onsite') {
+            $('#onsite_fields').show();
+            $('#online_fields').hide();
+            $('#onsite_fields input').prop('required', true);
+            $('#online_fields input').prop('required', false);
+        } else if (type === 'online') {
+            $('#onsite_fields').hide();
+            $('#online_fields').show();
+            $('#onsite_fields input').prop('required', false);
+            $('input[name="meeting_url"]').prop('required', true);
+        } else { // hybrid
+            $('#onsite_fields').show();
+            $('#online_fields').show();
+            $('#onsite_fields input').prop('required', false);
+            $('#online_fields input').prop('required', false);
+        }
+    });
+    
+    // Trigger change on page load
+    $('#meeting_type').trigger('change');
+});
+</script>
 {% endblock %}

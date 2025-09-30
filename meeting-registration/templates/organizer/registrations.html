@@ -57,12 +57,14 @@
     <!-- Export Buttons -->
     <div class="ui segment">
         <div class="ui buttons">
-            <button class="ui green button" onclick="exportToExcel()">
+            <a href="{{ url_for('organizer.export_registrations', meeting_id=meeting.id, format='excel') }}"
+               class="ui green button">
                 <i class="file excel icon"></i> Export Excel
-            </button>
-            <button class="ui blue button" onclick="exportToCSV()">
+            </a>
+            <a href="{{ url_for('organizer.export_registrations', meeting_id=meeting.id, format='csv') }}"
+               class="ui blue button">
                 <i class="file alternate icon"></i> Export CSV
-            </button>
+            </a>
             <button class="ui orange button" onclick="window.print()">
                 <i class="print icon"></i> พิมพ์รายชื่อ
             </button>
@@ -140,16 +142,12 @@
 </style>
 
 <script>
-function exportToExcel() {
-    // Implementation for Excel export
-    alert('กำลังดาวน์โหลดไฟล์ Excel...');
-    window.location.href = "{{ url_for('organizer.export_registrations', meeting_id=meeting.id, format='excel') }}";
-}
-
-function exportToCSV() {
-    // Implementation for CSV export  
-    alert('กำลังดาวน์โหลดไฟล์ CSV...');
-    window.location.href = "{{ url_for('organizer.export_registrations', meeting_id=meeting.id, format='csv') }}";
-}
+$(document).ready(function() {
+    // Initialize tooltips
+    $('[data-tooltip]').popup();
+    
+    // Add table sorting capability (optional)
+    $('.ui.table').tablesort();
+});
 </script>
 {% endblock %}

@@ -11,7 +11,7 @@
         </a>
         <div class="right menu">
             <div class="item">
-                <i class="user icon"></i> {{ session.user_email }}
+                <i class="user icon"></i> {{ current_user.email }}
             </div>
             <a class="item" href="{{ url_for('auth.logout') }}">
                 <i class="sign out icon"></i> ออกจากระบบ
@@ -28,6 +28,8 @@
     </h1>
 
     <form class="ui form" method="POST">
+        <h4 class="ui dividing header">ข้อมูลพื้นฐาน</h4>
+        
         <div class="field">
             <label>หัวข้อการประชุม</label>
             <input type="text" name="topic" value="{{ meeting.topic }}" required>
@@ -51,26 +53,72 @@
             </div>
         </div>
         
-        <div class="three fields">
-            <div class="field">
-                <label>ห้องประชุม</label>
-                <input type="text" name="room" value="{{ meeting.room }}" required>
-            </div>
-            <div class="field">
-                <label>ชั้น</label>
-                <input type="text" name="floor" value="{{ meeting.floor }}" required>
-            </div>
-            <div class="field">
-                <label>อาคาร</label>
-                <input type="text" name="building" value="{{ meeting.building }}" required>
+        <h4 class="ui dividing header">สถานที่ประชุม</h4>
+        
+        <div class="field">
+            <label>รูปแบบการประชุม</label>
+            <select name="meeting_type" class="ui dropdown" id="meeting_type">
+                <option value="onsite" {% if meeting.meeting_type == 'onsite' %}selected{% endif %}>ณ สถานที่ (Onsite)</option>
+                <option value="online" {% if meeting.meeting_type == 'online' %}selected{% endif %}>ออนไลน์ (Online)</option>
+                <option value="hybrid" {% if meeting.meeting_type == 'hybrid' %}selected{% endif %}>ผสมผสาน (Hybrid)</option>
+            </select>
+        </div>
+        
+        <div id="onsite_fields">
+            <div class="three fields">
+                <div class="field">
+                    <label>ห้องประชุม</label>
+                    <input type="text" name="room" value="{{ meeting.room }}">
+                </div>
+                <div class="field">
+                    <label>ชั้น</label>
+                    <input type="text" name="floor" value="{{ meeting.floor }}">
+                </div>
+                <div class="field">
+                    <label>อาคาร</label>
+                    <input type="text" name="building" value="{{ meeting.building }}">
+                </div>
             </div>
         </div>
+        
+        <div id="online_fields" style="display: none;">
+            <h4 class="ui dividing header">ข้อมูลการประชุมออนไลน์</h4>
+            
+            <div class="field">
+                <label>Link การประชุม (Zoom/Teams/Google Meet)</label>
+                <input type="url" name="meeting_url" value="{{ meeting.meeting_url }}" placeholder="https://zoom.us/j/123456789">
+                <small class="ui grey text">กรอก URL เต็มของการประชุมออนไลน์</small>
+            </div>
+            
+            <div class="two fields">
+                <div class="field">
+                    <label>Meeting ID</label>
+                    <input type="text" name="meeting_id" value="{{ meeting.meeting_id }}" placeholder="123-456-789">
+                </div>
+                <div class="field">
+                    <label>Password</label>
+                    <input type="text" name="meeting_password" value="{{ meeting.meeting_password }}" placeholder="abc123">
+                </div>
+            </div>
+        </div>
+        
+        <div class="field">
+            <label>ข้อมูลเพิ่มเติม</label>
+            <textarea name="additional_info" rows="3" placeholder="เช่น วาระการประชุม, เอกสารประกอบ, หมายเหตุอื่นๆ">{{ meeting.additional_info }}</textarea>
+        </div>
+        
+        <h4 class="ui dividing header">ตั้งค่าการลงทะเบียน</h4>
         
         <div class="field">
             <div class="ui checkbox">
                 <input type="checkbox" name="is_public" {% if meeting.is_public %}checked{% endif %}>
                 <label>เปิดให้ทุกคนลงทะเบียนได้ (สาธารณะ)</label>
             </div>
+            <p class="ui small grey text">
+                <i class="info circle icon"></i>
+                หากเลือกสาธารณะ: การประชุมจะแสดงในหน้าแรกให้ทุกคนเห็นและลงทะเบียนได้<br>
+                หากไม่เลือก: เฉพาะผู้ที่มี link โดยตรงหรือ QR Code เท่านั้นที่จะลงทะเบียนได้
+            </p>
         </div>
         
         <div class="field">
@@ -78,14 +126,59 @@
                 <input type="checkbox" name="is_active" {% if meeting.is_active %}checked{% endif %}>
                 <label>เปิดรับลงทะเบียน</label>
             </div>
+            <p class="ui small grey text">
+                <i class="info circle icon"></i>
+                หากปิด: จะไม่มีใครสามารถลงทะเบียนได้แม้จะมี link หรือ QR Code
+            </p>
+        </div>
+        
+        <!-- แสดงข้อมูลการลงทะเบียนปัจจุบัน -->
+        <div class="ui info message">
+            <div class="header">สถิติการลงทะเบียน</div>
+            <p><i class="users icon"></i> มีผู้ลงทะเบียนแล้ว {{ meeting.registrations.count() }} คน</p>
         </div>
         
         <button class="ui primary button" type="submit">
             <i class="save icon"></i> บันทึกการเปลี่ยนแปลง
         </button>
+        <a href="{{ url_for('organizer.view_registrations', meeting_id=meeting.id) }}" class="ui green button">
+            <i class="list icon"></i> ดูรายชื่อผู้ลงทะเบียน
+        </a>
         <a href="{{ url_for('organizer.dashboard') }}" class="ui button">
             <i class="cancel icon"></i> ยกเลิก
         </a>
     </form>
 </div>
+
+<script>
+$(document).ready(function() {
+    // Initialize dropdown
+    $('.ui.dropdown').dropdown();
+    
+    // Meeting type field toggle
+    $('#meeting_type').on('change', function() {
+        var type = $(this).val();
+        
+        if (type === 'onsite') {
+            $('#onsite_fields').show();
+            $('#online_fields').hide();
+            $('#onsite_fields input').prop('required', true);
+            $('#online_fields input').prop('required', false);
+        } else if (type === 'online') {
+            $('#onsite_fields').hide();
+            $('#online_fields').show();
+            $('#onsite_fields input').prop('required', false);
+            $('input[name="meeting_url"]').prop('required', true);
+        } else { // hybrid
+            $('#onsite_fields').show();
+            $('#online_fields').show();
+            $('#onsite_fields input').prop('required', false);
+            $('#online_fields input').prop('required', false);
+        }
+    });
+    
+    // Trigger change on page load
+    $('#meeting_type').trigger('change');
+});
+</script>
 {% endblock %}

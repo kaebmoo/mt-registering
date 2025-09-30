@@ -1,70 +1,103 @@
-<!-- templates/index_multi_with_qr.html -->
 {% extends "base.html" %}
 
-{% block title %}ลงทะเบียนการประชุม{% endblock %}
+{% block title %}เลือกการประชุม{% endblock %}
 
 {% block content %}
 <div class="ui container">
-    <h1 class="ui header">
+    <h1 class="ui center aligned header">
         <i class="calendar check icon"></i>
         <div class="content">
             ระบบลงทะเบียนการประชุม
-            <div class="sub header">เลือกการประชุมที่ต้องการลงทะเบียน หรือสแกน QR Code</div>
+            <div class="sub header">เลือกการประชุมที่ต้องการลงทะเบียน</div>
         </div>
     </h1>
 
-    {% if meetings %}
-    <div class="ui cards">
-        {% for meeting in meetings %}
-        <div class="card">
-            <div class="content">
-                <div class="header">{{ meeting.topic }}</div>
-                <div class="meta">
-                    <span class="date">{{ meeting.meeting_date.strftime('%d/%m/%Y') }}</span>
-                </div>
-                <div class="description">
-                    <p><i class="clock icon"></i> {{ meeting.start_time.strftime('%H:%M') }} - {{ meeting.end_time.strftime('%H:%M') }}</p>
-                    <p><i class="map marker icon"></i> ห้อง {{ meeting.room }} ชั้น {{ meeting.floor }} อาคาร {{ meeting.building }}</p>
-                    {% if meeting.organizer %}
-                    <p><i class="user icon"></i> ผู้จัด: {{ meeting.organizer.name }}</p>
-                    {% endif %}
-                </div>
-            </div>
-            
-            <!-- QR Code Section -->
-            <div class="image">
-                <div style="padding: 20px; background: #f8f9fa; text-align: center;">
-                    <img src="data:image/png;base64,{{ get_meeting_qr(meeting.id) }}" 
-                         alt="QR Code for {{ meeting.topic }}"
-                         style="max-width: 200px; width: 100%; height: auto;">
-                    <p style="margin-top: 10px; color: #666; font-size: 0.9em;">
-                        <i class="qrcode icon"></i> สแกน QR Code เพื่อลงทะเบียน
-                    </p>
-                </div>
-            </div>
-            
-            <div class="extra content">
-                <div class="ui two buttons">
-                    <a href="{{ url_for('register', meeting_id=meeting.id) }}" 
-                       class="ui primary button">
-                        <i class="sign in icon"></i> ลงทะเบียน
-                    </a>
-                    <a href="{{ url_for('meeting_qrcode', meeting_id=meeting.id) }}" 
-                       class="ui basic button">
-                        <i class="qrcode icon"></i> QR Code
-                    </a>
-                </div>
-            </div>
+    <!-- การประชุมที่กำลังดำเนินการ -->
+    {% if ongoing_meetings %}
+    <div class="ui red segment">
+        <h3 class="ui header">
+            <i class="circle icon red"></i>
+            กำลังดำเนินการ
+            <div class="sub header">การประชุมที่กำลังจัดอยู่ในขณะนี้</div>
+        </h3>
+        <div class="ui two stackable cards">
+            {% for meeting in ongoing_meetings %}
+                {% include 'partials/meeting_card.html' %}
+            {% endfor %}
         </div>
-        {% endfor %}
-    </div>
-    {% else %}
-    <div class="ui warning message">
-        <div class="header">ไม่มีการประชุมที่เปิดให้ลงทะเบียน</div>
-        <p>ขณะนี้ไม่มีการประชุมที่เปิดรับลงทะเบียน กรุณาตรวจสอบใหม่ภายหลัง</p>
     </div>
     {% endif %}
-    
+
+    <!-- การประชุมวันนี้ -->
+    {% if today_meetings %}
+    <div class="ui orange segment">
+        <h3 class="ui header">
+            <i class="clock outline icon orange"></i>
+            วันนี้
+            <div class="sub header">การประชุมที่จะเริ่มในวันนี้</div>
+        </h3>
+        <div class="ui two stackable cards">
+            {% for meeting in today_meetings %}
+                {% include 'partials/meeting_card.html' %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- การประชุมที่กำลังจะมาถึง -->
+    {% if upcoming_meetings %}
+    <div class="ui blue segment">
+        <h3 class="ui header">
+            <i class="calendar outline icon blue"></i>
+            กำลังจะมาถึง
+            <div class="sub header">การประชุมในอนาคต</div>
+        </h3>
+        <div class="ui two stackable cards">
+            {% for meeting in upcoming_meetings %}
+                {% include 'partials/meeting_card.html' %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ไม่มีการประชุม -->
+    {% if not ongoing_meetings and not today_meetings and not upcoming_meetings %}
+    <div class="ui warning message">
+        <div class="header">
+            <i class="info circle icon"></i>
+            ไม่มีการประชุมที่เปิดรับลงทะเบียน
+        </div>
+        <p>ขณะนี้ไม่มีการประชุมที่เปิดให้ลงทะเบียน กรุณาติดต่อผู้ดูแลระบบ</p>
+    </div>
+    {% endif %}
+
+    <!-- การประชุมที่ผ่านไปแล้ว (ถ้ามี) -->
+    {% if past_meetings %}
+    <div class="ui divider"></div>
+    <div class="ui gray segment">
+        <h4 class="ui header">
+            <i class="history icon gray"></i>
+            ประวัติการประชุมล่าสุด
+            <div class="sub header">การประชุมที่ผ่านมาแล้ว (แสดง 5 รายการล่าสุด)</div>
+        </h4>
+        <div class="ui relaxed divided list">
+            {% for meeting in past_meetings %}
+            <div class="item">
+                <i class="calendar check outline icon"></i>
+                <div class="content">
+                    <div class="header">{{ meeting.topic }}</div>
+                    <div class="description">
+                        วันที่ {{ meeting.meeting_date.strftime('%d/%m/%Y') }}
+                        เวลา {{ meeting.start_time.strftime('%H:%M') }} - {{ meeting.end_time.strftime('%H:%M') }} น.
+                        <span class="ui mini gray label">สิ้นสุดแล้ว</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
     <div class="ui divider"></div>
     
     <div class="ui secondary menu">
@@ -78,14 +111,57 @@
 </div>
 
 <style>
-    .ui.cards > .card > .image {
-        background: #f8f9fa !important;
+    /* Status colors */
+    .ui.red.segment {
+        border-top: 3px solid #db2828;
     }
     
+    .ui.orange.segment {
+        border-top: 3px solid #f2711c;
+    }
+    
+    .ui.blue.segment {
+        border-top: 3px solid #2185d0;
+    }
+    
+    .ui.gray.segment {
+        border-top: 3px solid #767676;
+        opacity: 0.9;
+    }
+    
+    /* Blink animation for ongoing meetings */
+    @keyframes blink {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+    
+    .red.icon.circle {
+        animation: blink 2s infinite;
+    }
+    
+    /* Card hover effects */
+    .ui.cards > .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        transition: all 0.3s ease;
+    }
+    
+    /* Responsive */
     @media only screen and (max-width: 767px) {
-        .ui.cards > .card > .image img {
-            max-width: 150px !important;
+        .ui.segment {
+            margin: 1em 0;
+            padding: 1em;
         }
     }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-refresh หน้าทุก 5 นาที เพื่อ update สถานะการประชุม
+    setTimeout(function(){
+        location.reload();
+    }, 300000); // 5 minutes
+</script>
 {% endblock %}
