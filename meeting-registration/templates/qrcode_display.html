@@ -27,7 +27,13 @@
             <div class="content">
                 <p><i class="calendar icon"></i> วันที่: {{ meeting.meeting_date.strftime('%d/%m/%Y') }}</p>
                 <p><i class="clock icon"></i> เวลา: {{ meeting.start_time.strftime('%H:%M') }} - {{ meeting.end_time.strftime('%H:%M') }}</p>
-                <p><i class="map marker icon"></i> สถานที่: ห้อง {{ meeting.room }} ชั้น {{ meeting.floor }} อาคาร {{ meeting.building }}</p>
+                <p><i class="map marker icon"></i> 
+                    {% if meeting.meeting_type == 'online' %}
+                        ประชุมออนไลน์
+                    {% else %}
+                        สถานที่: ห้อง {{ meeting.room }} ชั้น {{ meeting.floor }} อาคาร {{ meeting.building }}
+                    {% endif %}
+                </p>
             </div>
         </div>
         
