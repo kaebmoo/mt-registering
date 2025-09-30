@@ -265,7 +265,8 @@ def create_app(config_name=None):
         ).all()
         
         # จัดกลุ่มการประชุมตามสถานะเวลา
-        bangkok_tz = pytz.timezone('Asia/Bangkok')
+        timezone = app.config.get('TIMEZONE', 'Asia/Bangkok')
+        bangkok_tz = pytz.timezone(timezone)
         now = datetime.now(bangkok_tz)
         today = now.date()
         

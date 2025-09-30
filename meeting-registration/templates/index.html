@@ -121,6 +121,18 @@
                         </div>
                     {% endif %}
                 {% endif %}
+
+                {% if meeting.organizer %}
+                <div class="item">
+                    <i class="user icon"></i>
+                    <div class="content">
+                        <strong>ผู้ประสานงาน:</strong> {{ meeting.organizer.name }}
+                        {% if meeting.organizer.email %}
+                            - <a href="mailto:{{ meeting.organizer.email }}">{{ meeting.organizer.email }}</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
                 
                 {% if meeting.additional_info and meeting.additional_info != 'None' %}
                     <div class="item">

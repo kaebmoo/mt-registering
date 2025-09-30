@@ -98,6 +98,36 @@
             </div>
         </div>
     </div>
+
+    <!-- Organizer Info -->
+    {% if meeting.organizer %}
+    <div class="extra content" style="background-color: #f8f9fa; padding: 10px; margin-top: 15px;">
+        <div class="ui mini list">
+            <div class="item">
+                <i class="user icon"></i>
+                <div class="content">
+                    <strong>ผู้ประสานงาน:</strong> {{ meeting.organizer.name }}
+                </div>
+            </div>
+            {% if meeting.organizer.email %}
+            <div class="item">
+                <i class="mail icon"></i>
+                <div class="content">
+                    <a href="mailto:{{ meeting.organizer.email }}">{{ meeting.organizer.email }}</a>
+                </div>
+            </div>
+            {% endif %}
+            {% if meeting.organizer.phone %}
+            <div class="item">
+                <i class="phone icon"></i>
+                <div class="content">
+                    {{ meeting.organizer.phone }}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
     
     <!-- Action Button -->
     <div class="ui bottom attached button primary" onclick="window.location.href='{{ url_for('register_meeting', meeting_id=meeting.id) }}'">
